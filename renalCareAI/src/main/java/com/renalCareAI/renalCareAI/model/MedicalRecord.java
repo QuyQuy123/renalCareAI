@@ -48,6 +48,12 @@ public class MedicalRecord {
     @Column(name = "risk_summary", length = 1000)
     private String riskSummary;
 
+    @Column(name = "extracted_data_json", columnDefinition = "LONGTEXT")
+    private String extractedDataJson;
+
+    @Column(name = "prediction_result_json", columnDefinition = "LONGTEXT")
+    private String predictionResultJson;
+
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     private Instant uploadedAt;
 
@@ -122,6 +128,22 @@ public class MedicalRecord {
 
     public void setRiskSummary(String riskSummary) {
         this.riskSummary = riskSummary;
+    }
+
+    public String getExtractedDataJson() {
+        return extractedDataJson;
+    }
+
+    public void setExtractedDataJson(String extractedDataJson) {
+        this.extractedDataJson = extractedDataJson;
+    }
+
+    public String getPredictionResultJson() {
+        return predictionResultJson;
+    }
+
+    public void setPredictionResultJson(String predictionResultJson) {
+        this.predictionResultJson = predictionResultJson;
     }
 
     public Instant getUploadedAt() {

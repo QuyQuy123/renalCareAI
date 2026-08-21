@@ -65,6 +65,8 @@ INSERT INTO medical_records (
     file_size,
     status,
     risk_summary,
+    extracted_data_json,
+    prediction_result_json,
     uploaded_at
 ) VALUES (
     1,
@@ -73,8 +75,10 @@ INSERT INTO medical_records (
     'uploads/medical-records/1/sample-medical-record.pdf',
     'application/pdf',
     245760,
-    'PENDING_ANALYSIS',
-    'Da tai len. He thong se phan tich nguy co benh than o buoc tiep theo.',
+    'ANALYZED',
+    'Có một số dấu hiệu cần theo dõi về sức khỏe thận. Bạn nên kiểm tra lại và trao đổi với bác sĩ.',
+    '{"fileName":"ket-qua-xet-nghiem-mau.pdf","contentType":"application/pdf","extractionMode":"pdf-text+openai-ocr","aiOcrUsed":true,"aiOcrRawJson":"{\"text\":\"eGFR 52, creatinine 1.4, huyet ap 145/90\",\"indicators\":{\"eGFR\":52,\"creatinine\":1.4}}","textPreview":"eGFR 52, creatinine 1.4, huyet ap 145/90","indicators":{"eGFR":52,"creatinine":1.4,"systolicBloodPressure":145,"diastolicBloodPressure":90}}',
+    '{"riskLevel":"MODERATE","riskScore":33,"confidence":61,"summary":"Có một số dấu hiệu cần theo dõi về sức khỏe thận. Bạn nên kiểm tra lại và trao đổi với bác sĩ.","indicators":{"eGFR":52,"creatinine":1.4,"systolicBloodPressure":145,"diastolicBloodPressure":90},"findings":["eGFR 45-59 ml/phút/1,73m²: cần theo dõi bệnh thận mạn nếu kéo dài."],"recommendations":["Đối chiếu kết quả với bác sĩ."],"limitations":["Kết quả chỉ là sàng lọc tham khảo, không phải chẩn đoán."]}',
     CURRENT_TIMESTAMP(6)
 );
 ```

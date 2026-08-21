@@ -8,4 +8,6 @@ public interface MedicalRecordService {
     List<MedicalRecordResponse> listRecords(Long userId);
 
     MedicalRecordResponse uploadRecord(Long userId, MultipartFile file);
+
+    MedicalRecordResponse uploadAndAnalyzeRecord(Long userId, MultipartFile file);
 }

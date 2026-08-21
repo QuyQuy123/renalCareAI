@@ -13,8 +13,9 @@ SYSTEM_INSTRUCTIONS = """
 Bạn là trợ lý RenalCareAI, trả lời bằng tiếng Việt có dấu, rõ ràng và thận trọng.
 Chỉ trả lời các câu hỏi liên quan đến bệnh thận, sức khỏe thận, xét nghiệm thận,
 ăn uống/luyện tập/thuốc trong bối cảnh chăm sóc thận.
-Nếu người dùng hỏi ngoài phạm vi bệnh thận, hãy từ chối ngắn gọn và mời họ hỏi lại
-về sức khỏe thận. Không viết thơ, viết code, tư vấn chủ đề chung, giải trí,
+Nếu người dùng chào hỏi hoặc cảm ơn, hãy phản hồi thân thiện ngắn gọn rồi gợi ý
+họ hỏi về sức khỏe thận. Nếu người dùng hỏi ngoài phạm vi bệnh thận, hãy từ chối
+mềm mại và mời họ hỏi lại về sức khỏe thận. Không viết thơ, viết code, tư vấn chủ đề chung, giải trí,
 tài chính, pháp lý hoặc nội dung không liên quan thận.
 Chỉ dùng nội dung được cung cấp từ tài liệu tham khảo để trả lời về sức khỏe thận.
 Không chẩn đoán bệnh, không tự kê đơn, không thay đổi thuốc của người dùng.
@@ -77,6 +78,29 @@ GENERAL_HEALTH_TERMS = {
     "xét nghiệm",
 }
 
+GENERAL_KIDNEY_CARE_TERMS = {
+    "bài tập",
+    "cardio",
+    "chạy bộ",
+    "chế độ ăn",
+    "dinh dưỡng",
+    "đi bộ",
+    "exercise",
+    "khỏe",
+    "luyện tập",
+    "món ăn",
+    "ngủ",
+    "sức khỏe",
+    "tập gym",
+    "tập luyện",
+    "tập thể dục",
+    "thể dục",
+    "thể thao",
+    "uống nước",
+    "vận động",
+    "yoga",
+}
+
 KIDNEY_CONTEXTUAL_QUESTIONS = {
     "khi nào nên đi khám",
     "khi nào cần đi khám",
@@ -87,9 +111,15 @@ KIDNEY_CONTEXTUAL_QUESTIONS = {
 }
 
 OFF_TOPIC_RESPONSE = (
-    "Mình chỉ hỗ trợ các câu hỏi liên quan đến bệnh thận và chăm sóc sức khỏe thận. "
-    "Bạn có thể hỏi về dấu hiệu bệnh thận, eGFR, creatinine, xét nghiệm nước tiểu, "
-    "ăn uống, luyện tập hoặc dùng thuốc trong bối cảnh bệnh thận nhé."
+    "Mình chưa hỗ trợ chủ đề đó trong chatbox này. Mình tập trung vào bệnh thận và "
+    "chăm sóc sức khỏe thận, nên bạn có thể hỏi về eGFR, creatinine, xét nghiệm nước tiểu, "
+    "dấu hiệu cần đi khám, ăn uống, luyện tập hoặc thuốc trong bối cảnh bệnh thận nhé."
+)
+
+GREETING_RESPONSE = (
+    "Chào bạn, mình đây. Mình có thể giúp bạn đọc hiểu các chỉ số như eGFR, creatinine, "
+    "uACR, xét nghiệm nước tiểu, dấu hiệu cần đi khám hoặc cách ăn uống/luyện tập để hỗ trợ thận. "
+    "Bạn muốn hỏi phần nào trước?"
 )
 
 
@@ -154,6 +184,24 @@ def contains_any(text: str, terms: set[str]) -> bool:
     return any(term in normalized for term in terms)
 
 
+def is_greeting(message: str) -> bool:
+    normalized = message.lower().strip(" ?.؟!！,，")
+    greetings = {
+        "hi",
+        "hello",
+        "hey",
+        "alo",
+        "chào",
+        "chào bạn",
+        "xin chào",
+        "cam on",
+        "cảm ơn",
+        "thanks",
+        "thank you",
+    }
+    return normalized in greetings or (len(normalized) <= 16 and normalized.startswith(("chào", "hello", "hi ")))
+
+
 def is_kidney_related(message: str, history: list[dict[str, str]] | None = None) -> bool:
     if contains_any(message, KIDNEY_SCOPE_TERMS):
         return True
@@ -162,10 +210,21 @@ def is_kidney_related(message: str, history: list[dict[str, str]] | None = None)
     if normalized_message in KIDNEY_CONTEXTUAL_QUESTIONS:
         return True
 
+    if contains_any(message, GENERAL_KIDNEY_CARE_TERMS):
+        return True
+
     recent_history = history[-4:] if history else []
     history_text = " ".join(item.get("content", "") for item in recent_history)
     has_kidney_context = contains_any(history_text, KIDNEY_SCOPE_TERMS)
     return has_kidney_context and contains_any(message, GENERAL_HEALTH_TERMS)
+
+
+def retrieval_question(message: str) -> str:
+    if contains_any(message, KIDNEY_SCOPE_TERMS):
+        return message
+    if contains_any(message, GENERAL_KIDNEY_CARE_TERMS):
+        return f"{message} trong bối cảnh chăm sóc sức khỏe thận và bệnh thận mạn"
+    return message
 
 
 def generate_answer(client: OpenAI, model: str, prompt: str) -> str:
@@ -198,6 +257,13 @@ def answer_question(message: str, history: list[dict[str, str]] | None = None) -
     if not settings.openai_api_key:
         raise RuntimeError("Missing OPENAI_API_KEY in chatbox-rag/.env")
 
+    if is_greeting(message):
+        return {
+            "answer": GREETING_RESPONSE,
+            "sources": [],
+            "retrieved": [],
+        }
+
     if not is_kidney_related(message, history):
         return {
             "answer": OFF_TOPIC_RESPONSE,
@@ -206,7 +272,7 @@ def answer_question(message: str, history: list[dict[str, str]] | None = None) -
         }
 
     try:
-        chunks = retrieve(message)
+        chunks = retrieve(retrieval_question(message))
     except OpenAIError as error:
         raise RuntimeError(
             "OpenAI embedding request failed. Check OPENAI_API_KEY, billing, or embedding model access. "
@@ -229,6 +295,7 @@ Câu hỏi của người dùng:
 
 Yêu cầu trả lời:
 - Trả lời ngắn gọn, dễ hiểu, theo gạch đầu dòng khi phù hợp.
+- Nếu câu hỏi là sức khỏe chung, hãy trả lời theo góc nhìn chăm sóc thận và an toàn cho người có nguy cơ bệnh thận.
 - Nêu rõ đây là thông tin tham khảo, không thay thế bác sĩ.
 - Cuối câu trả lời ghi mục "Nguồn tham khảo" với tên nguồn đã dùng.
 """.strip()

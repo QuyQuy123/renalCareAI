@@ -23,6 +23,8 @@ Use these files as the current product contract:
 - `DESIGN_Admin.md`: admin-facing design and experience authority.
 - `ARCHITECTURE.md`: system architecture, user flows, data model direction,
   security principles, and CI/CD expectations.
+- `docs/product/risk-model.md`: current medical-record extraction, OCR, KFRE,
+  CKD feature guidance, and risk-screening boundaries.
 
 ## Product Boundary
 

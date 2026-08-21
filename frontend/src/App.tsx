@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent, MouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ChangeEvent, FormEvent, MouseEvent } from 'react'
 import {
   Activity,
+  Apple,
   BotMessageSquare,
   CheckCircle2,
   ChevronRight,
+  Dumbbell,
   ExternalLink,
   FileText,
   FolderOpen,
@@ -21,6 +23,7 @@ import {
   ShieldCheck,
   Sparkles,
   Stethoscope,
+  Timer,
   UploadCloud,
   X,
   UserPlus,
@@ -77,7 +80,20 @@ type MedicalRecord = {
   fileSize: number
   status: 'UPLOADED' | 'PENDING_ANALYSIS' | 'ANALYZED' | 'FAILED'
   riskSummary?: string | null
+  extractedDataJson?: string | null
+  predictionResultJson?: string | null
   uploadedAt: string
+}
+
+type KidneyRiskPrediction = {
+  riskLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'INSUFFICIENT_DATA'
+  riskScore: number
+  confidence: number
+  summary: string
+  indicators: Record<string, number>
+  findings: string[]
+  recommendations: string[]
+  limitations: string[]
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
@@ -85,6 +101,7 @@ const SESSION_KEY = 'renalcareai_user'
 const sectionRoutes: Record<string, string> = {
   '/risk': 'risk',
   '/care': 'care',
+  '/lifestyle': 'lifestyle',
   '/records': 'records',
 }
 
@@ -107,6 +124,45 @@ const careCards = [
 ]
 
 const indicators = ['eGFR', 'Creatinine', 'Huyết áp', 'Đạm niệu']
+
+const nutritionGroups = [
+  {
+    title: 'Bữa ăn cân bằng',
+    items: ['Cá hấp hoặc ức gà vừa khẩu phần', 'Cơm gạo lứt lượng phù hợp', 'Rau luộc, salad ít muối'],
+    note: 'Ưu tiên chế biến hấp, luộc, áp chảo nhẹ; hạn chế nước chấm mặn.',
+  },
+  {
+    title: 'Món nhẹ hỗ trợ kiểm soát',
+    items: ['Sữa chua không đường', 'Táo hoặc lê theo khẩu phần', 'Bánh mì nguyên cám ít muối'],
+    note: 'Nếu đang hạn chế kali, phospho hoặc đạm, cần theo chỉ định xét nghiệm.',
+  },
+  {
+    title: 'Nên hạn chế',
+    items: ['Đồ hộp, mì gói, thịt chế biến sẵn', 'Nước ngọt, trà sữa nhiều đường', 'Ăn quá mặn hoặc tự ý dùng thực phẩm chức năng'],
+    note: 'Người bệnh thận mạn có thể cần giới hạn natri, kali, phospho và protein khác nhau.',
+  },
+]
+
+const activityPlans = [
+  {
+    icon: Activity,
+    title: 'Đi bộ nhẹ',
+    meta: '20-30 phút',
+    text: 'Phù hợp để duy trì vận động hằng ngày, có thể chia thành 2-3 lần nếu nhanh mệt.',
+  },
+  {
+    icon: Dumbbell,
+    title: 'Sức mạnh nhẹ',
+    meta: '2-3 buổi/tuần',
+    text: 'Bài tập với dây kháng lực hoặc trọng lượng cơ thể, tránh nín thở và tránh nâng quá nặng.',
+  },
+  {
+    icon: Timer,
+    title: 'Giãn cơ và thở',
+    meta: '8-12 phút',
+    text: 'Giúp thư giãn, ngủ tốt hơn và hỗ trợ kiểm soát căng thẳng khi đang theo dõi sức khỏe thận.',
+  },
+]
 
 async function requestAuth(path: string, payload: Record<string, string>) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -169,6 +225,58 @@ function formatDateTime(value: string) {
   }).format(new Date(value))
 }
 
+function riskLabel(level: MedicalRecord['status'] | KidneyRiskPrediction['riskLevel']) {
+  const labels: Record<string, string> = {
+    ANALYZED: 'Đã phân tích',
+    FAILED: 'Lỗi phân tích',
+    HIGH: 'Nguy cơ cao',
+    INSUFFICIENT_DATA: 'Chưa đủ dữ liệu',
+    LOW: 'Nguy cơ thấp',
+    MODERATE: 'Nguy cơ vừa',
+    PENDING_ANALYSIS: 'Chờ phân tích',
+    UPLOADED: 'Đã tải lên',
+  }
+  return labels[level] ?? level
+}
+
+function parsePrediction(record: MedicalRecord) {
+  if (!record.predictionResultJson) {
+    return null
+  }
+
+  try {
+    return JSON.parse(record.predictionResultJson) as KidneyRiskPrediction
+  } catch {
+    return null
+  }
+}
+
+function buildPredictionMessage(record: MedicalRecord) {
+  const prediction = parsePrediction(record)
+  if (!prediction) {
+    return `Mình đã lưu hồ sơ "${record.originalFileName}" vào mục Hồ sơ khám, nhưng chưa đọc được kết quả dự đoán từ file này.`
+  }
+
+  const indicators = Object.entries(prediction.indicators ?? {})
+    .map(([key, value]) => `- ${key}: ${value}`)
+    .join('\n')
+  const findings = prediction.findings?.slice(0, 4).map((item) => `- ${item}`).join('\n')
+  const recommendations = prediction.recommendations?.slice(0, 3).map((item) => `- ${item}`).join('\n')
+  const limitations = prediction.limitations?.slice(0, 2).map((item) => `- ${item}`).join('\n')
+
+  return [
+    `Mình đã đọc và lưu hồ sơ "${record.originalFileName}" vào mục Hồ sơ khám.`,
+    '',
+    `Kết quả sàng lọc: ${riskLabel(prediction.riskLevel)} (${prediction.riskScore}/100, độ tin cậy ${prediction.confidence}%).`,
+    prediction.summary,
+    indicators ? `\nChỉ số trích xuất:\n${indicators}` : '',
+    findings ? `\nNhận xét chính:\n${findings}` : '',
+    recommendations ? `\nGợi ý tiếp theo:\n${recommendations}` : '',
+    limitations ? `\nLưu ý:\n${limitations}` : '',
+    '\nThông tin này chỉ để tham khảo, không thay thế chẩn đoán hoặc chỉ định của bác sĩ.',
+  ].filter(Boolean).join('\n')
+}
+
 function App() {
   const [user, setUser] = useState<UserSession | null>(() => {
     const rawSession = localStorage.getItem(SESSION_KEY)
@@ -207,7 +315,9 @@ function App() {
   const [chatInput, setChatInput] = useState('')
   const [isChatLoading, setIsChatLoading] = useState(false)
   const [isChatStreaming, setIsChatStreaming] = useState(false)
+  const [isChatFileUploading, setIsChatFileUploading] = useState(false)
   const [chatError, setChatError] = useState('')
+  const chatFileInputRef = useRef<HTMLInputElement | null>(null)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -402,6 +512,56 @@ function App() {
     }
   }
 
+  async function handleChatFileUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+    if (!user) {
+      setChatError('Bạn cần đăng nhập trước khi tải hồ sơ khám để dự đoán nguy cơ.')
+      openAuth('login')
+      return
+    }
+    if (isChatLoading || isChatStreaming || isChatFileUploading) {
+      return
+    }
+
+    const userMessage: ChatMessage = {
+      id: createChatId(),
+      role: 'user',
+      content: `Tải hồ sơ khám: ${file.name}`,
+    }
+    setChatMessages((current) => [...current, userMessage])
+    setChatError('')
+    setIsChatFileUploading(true)
+    setIsChatLoading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const response = await fetch(`${API_BASE_URL}/api/users/${user.id}/medical-records/analyze`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({}))) as ApiError
+        throw new Error(error.message ?? 'Không thể phân tích hồ sơ khám.')
+      }
+
+      const record = (await response.json()) as MedicalRecord
+      setMedicalRecords((current) => [record, ...current.filter((item) => item.id !== record.id)])
+      await revealAssistantAnswer(buildPredictionMessage(record))
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : 'Không thể phân tích hồ sơ khám.')
+    } finally {
+      setIsChatLoading(false)
+      setIsChatFileUploading(false)
+    }
+  }
+
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!user || !profileForm) {
@@ -458,7 +618,7 @@ function App() {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      const response = await fetch(`${API_BASE_URL}/api/users/${user.id}/medical-records`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/${user.id}/medical-records/analyze`, {
         method: 'POST',
         body: formData,
       })
@@ -470,7 +630,7 @@ function App() {
 
       const record = (await response.json()) as MedicalRecord
       setMedicalRecords((current) => [record, ...current])
-      setRecordsMessage('Đã tải hồ sơ khám. Hệ thống sẽ dùng hồ sơ này cho bước phân tích nguy cơ.')
+      setRecordsMessage('Đã tải và phân tích hồ sơ khám. Kết quả đã được lưu vào danh sách hồ sơ.')
       form.reset()
     } catch (error) {
       setRecordsError(error instanceof Error ? error.message : 'Không thể tải hồ sơ khám.')
@@ -529,6 +689,7 @@ function App() {
         <nav className="main-nav" aria-label="Điều hướng chính">
           <a href="/risk" onClick={(event) => navigateToPath(event, '/risk')}>Đánh giá nguy cơ</a>
           <a href="/care" onClick={(event) => navigateToPath(event, '/care')}>Chăm sóc thận</a>
+          <a href="/lifestyle" onClick={(event) => navigateToPath(event, '/lifestyle')}>Dinh dưỡng & vận động</a>
           <a href="/records" onClick={(event) => navigateToPath(event, '/records')}>Hồ sơ sức khỏe</a>
         </nav>
 
@@ -654,6 +815,98 @@ function App() {
         </div>
       </section>
 
+      <section className="lifestyle-section" id="lifestyle">
+        <div className="section-heading lifestyle-heading">
+          <p className="eyebrow">
+            <Apple size={16} />
+            Dinh dưỡng và vận động
+          </p>
+          <h2>Món ăn đủ chất, vận động vừa sức để chăm sóc thận mỗi ngày.</h2>
+          <p>
+            Các gợi ý dưới đây phù hợp để tham khảo khi bạn muốn ăn uống lành mạnh
+            và vận động an toàn hơn. Nếu đã có bệnh thận mạn, tăng kali, phù,
+            tăng huyết áp hoặc đang lọc máu, hãy cá nhân hóa theo bác sĩ/dinh dưỡng.
+          </p>
+        </div>
+
+        <div className="lifestyle-showcase">
+          <article className="plate-card" aria-label="Gợi ý đĩa ăn cân bằng">
+            <div className="plate-visual" aria-hidden="true">
+              <span className="plate-grain"></span>
+              <span className="plate-protein"></span>
+              <span className="plate-veg"></span>
+            </div>
+            <div>
+              <span className="widget-label">Công thức ghi nhớ</span>
+              <h3>Ít muối, đủ năng lượng, đúng khẩu phần.</h3>
+              <p>
+                Chọn thực phẩm tươi, ưu tiên hấp/luộc/áp chảo nhẹ, đọc nhãn natri
+                và tránh tự tăng protein nếu eGFR đang giảm.
+              </p>
+            </div>
+          </article>
+
+          <div className="nutrition-grid">
+            {nutritionGroups.map((group) => (
+              <article className="nutrition-card" key={group.title}>
+                <div className="nutrition-card-header">
+                  <Utensils size={18} />
+                  <h3>{group.title}</h3>
+                </div>
+                <ul>
+                  {group.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+                <p>{group.note}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="activity-board">
+          <div className="activity-copy">
+            <p className="eyebrow">
+              <Dumbbell size={16} />
+              Vận động tốt cho thận
+            </p>
+            <h3>Không cần tập nặng, quan trọng là đều và an toàn.</h3>
+            <p>
+              Bắt đầu chậm, theo dõi huyết áp và mức mệt. Dừng tập nếu đau ngực,
+              khó thở bất thường, choáng, phù tăng nhanh hoặc huyết áp quá cao.
+            </p>
+          </div>
+
+          <div className="activity-grid">
+            {activityPlans.map(({ icon: Icon, title, meta, text }) => (
+              <article className="activity-card" key={title}>
+                <span>
+                  <Icon size={20} />
+                </span>
+                <strong>{title}</strong>
+                <small>{meta}</small>
+                <p>{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="daily-rhythm" aria-label="Nhịp chăm sóc trong ngày">
+          <div>
+            <strong>Sáng</strong>
+            <span>Ăn nhạt, uống nước theo chỉ định, đi bộ nhẹ.</span>
+          </div>
+          <div>
+            <strong>Chiều</strong>
+            <span>Ưu tiên bữa chính đủ rau, tinh bột vừa phải, đạm đúng khẩu phần.</span>
+          </div>
+          <div>
+            <strong>Tối</strong>
+            <span>Giãn cơ, ngủ đủ, ghi lại huyết áp hoặc triệu chứng bất thường.</span>
+          </div>
+        </div>
+      </section>
+
       <section className="records-panel" id="records">
         <div>
           <p className="eyebrow">Dành cho người đã đăng nhập</p>
@@ -740,12 +993,29 @@ function App() {
 
         <form className="chat-input" onSubmit={handleChatSubmit}>
           <input
+            ref={chatFileInputRef}
+            className="chat-file-input"
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.json,.md"
+            onChange={handleChatFileUpload}
+            aria-label="Tải hồ sơ khám để dự đoán nguy cơ bệnh thận"
+          />
+          <input
             aria-label="Nhập câu hỏi về sức khỏe thận"
             placeholder="Nhập câu hỏi về sức khỏe thận..."
             value={chatInput}
             onChange={(event) => setChatInput(event.target.value)}
           />
-          <button type="submit" disabled={isChatLoading || isChatStreaming || !chatInput.trim()} aria-label="Gửi câu hỏi">
+          <button
+            className="chat-upload-button"
+            type="button"
+            disabled={isChatLoading || isChatStreaming || isChatFileUploading}
+            aria-label="Tải hồ sơ khám"
+            onClick={() => chatFileInputRef.current?.click()}
+          >
+            {isChatFileUploading ? <Loader2 size={18} className="spin" /> : <UploadCloud size={18} />}
+          </button>
+          <button type="submit" disabled={isChatLoading || isChatStreaming || isChatFileUploading || !chatInput.trim()} aria-label="Gửi câu hỏi">
             {isChatLoading || isChatStreaming ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
           </button>
         </form>
@@ -901,7 +1171,7 @@ function App() {
                       <span>{formatDateTime(record.uploadedAt)} · {formatFileSize(record.fileSize)}</span>
                       <p>{record.riskSummary ?? 'Đang chờ phân tích.'}</p>
                     </div>
-                    <small>{record.status === 'PENDING_ANALYSIS' ? 'Chờ phân tích' : record.status}</small>
+                    <small>{parsePrediction(record) ? riskLabel(parsePrediction(record)!.riskLevel) : riskLabel(record.status)}</small>
                   </article>
                 ))
               )}

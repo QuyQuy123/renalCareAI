@@ -11,6 +11,8 @@ public record MedicalRecordResponse(
         long fileSize,
         MedicalRecordStatus status,
         String riskSummary,
+        String extractedDataJson,
+        String predictionResultJson,
         Instant uploadedAt
 ) {
     public static MedicalRecordResponse from(MedicalRecord record) {
@@ -21,6 +23,8 @@ public record MedicalRecordResponse(
                 record.getFileSize(),
                 record.getStatus(),
                 record.getRiskSummary(),
+                record.getExtractedDataJson(),
+                record.getPredictionResultJson(),
                 record.getUploadedAt()
         );
     }

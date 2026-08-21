@@ -35,4 +35,13 @@ public class MedicalRecordController {
     ) {
         return medicalRecordService.uploadRecord(userId, file);
     }
+
+    @PostMapping("/analyze")
+    @ResponseStatus(HttpStatus.CREATED)
+    public MedicalRecordResponse uploadAndAnalyzeRecord(
+            @PathVariable Long userId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        return medicalRecordService.uploadAndAnalyzeRecord(userId, file);
+    }
 }

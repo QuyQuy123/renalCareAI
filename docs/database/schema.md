@@ -35,8 +35,8 @@ ALTER TABLE users ADD CONSTRAINT uk_users_email UNIQUE (email);
 ## medical_records
 
 Stores metadata for medical examination files uploaded by a logged-in user.
-The first implementation saves the file locally and stores analysis status;
-AI risk extraction can be attached to these records later.
+The file is saved on the backend, extracted indicators are stored as JSON, and
+the kidney-risk screening result is stored as JSON for the "Hồ sơ khám" view.
 
 | Column | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -48,7 +48,9 @@ AI risk extraction can be attached to these records later.
 | `content_type` | `VARCHAR(120)` | No | MIME type reported by the upload. |
 | `file_size` | `BIGINT` | Yes | Uploaded file size in bytes. |
 | `status` | `ENUM`/`VARCHAR(40)` | Yes | `UPLOADED`, `PENDING_ANALYSIS`, `ANALYZED`, or `FAILED`. |
-| `risk_summary` | `VARCHAR(1000)` | No | Short analysis status or future AI risk summary. |
+| `risk_summary` | `VARCHAR(1000)` | No | Short user-facing risk summary. |
+| `extracted_data_json` | `LONGTEXT` | No | JSON object containing extraction mode, OpenAI OCR status/raw output, preview text, and parsed indicators. |
+| `prediction_result_json` | `LONGTEXT` | No | JSON object containing risk level, score, findings, recommendations, and limitations. |
 | `uploaded_at` | `DATETIME(6)` | Yes | Created by JPA lifecycle hook. |
 
 ## Planned Tables
