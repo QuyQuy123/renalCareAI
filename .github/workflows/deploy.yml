@@ -14,19 +14,6 @@ jobs:
   backend-ci:
     name: Backend CI
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: 123456
-          MYSQL_DATABASE: RenalCareAI
-        ports:
-          - 3307:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p123456"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
     defaults:
       run:
         working-directory: renalCareAI
@@ -46,10 +33,13 @@ jobs:
 
       - name: Build and test backend
         env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3307/RenalCareAI?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-          SPRING_DATASOURCE_USERNAME: root
-          SPRING_DATASOURCE_PASSWORD: 123456
+          SPRING_DATASOURCE_URL: jdbc:h2:mem:renalcareai_test;MODE=MySQL;DB_CLOSE_DELAY=-1
+          SPRING_DATASOURCE_USERNAME: sa
+          SPRING_DATASOURCE_PASSWORD: ""
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.h2.Driver
+          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
           SPRING_JPA_SHOW_SQL: "false"
+          APP_RAG_AUTOSTART: "false"
         run: ./mvnw clean test
 
   frontend-ci:
@@ -99,9 +89,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - frontend-ci
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -114,9 +101,11 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: frontend
         run: npm ci
 
       - name: Verify frontend tooling
+        working-directory: frontend
         run: |
           npm run build
           test -x node_modules/.bin/vite
@@ -136,9 +125,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          export PATH="$PWD/node_modules/.bin:$PATH"
-          vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Deploy Vercel project
         env:
