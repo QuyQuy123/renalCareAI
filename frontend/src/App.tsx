@@ -125,6 +125,17 @@ async function requestAuth(path: string, payload: Record<string, string>) {
   return (await response.json()) as UserSession
 }
 
+async function requestUserProfile(userId: number) {
+  const response = await fetch(`${API_BASE_URL}/api/users/${userId}/profile`)
+
+  if (!response.ok) {
+    const error = (await response.json().catch(() => ({}))) as ApiError
+    throw new Error(error.message ?? 'Không thể tải thông tin cá nhân.')
+  }
+
+  return (await response.json()) as UserSession
+}
+
 function createChatId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
@@ -260,7 +271,7 @@ function App() {
     setIsRecordsOpen(false)
   }
 
-  function openProfile() {
+  async function openProfile() {
     if (!user) {
       openAuth('login')
       return
@@ -270,6 +281,15 @@ function App() {
     setProfileError('')
     setIsUserMenuOpen(false)
     setIsProfileOpen(true)
+
+    try {
+      const latestProfile = await requestUserProfile(user.id)
+      localStorage.setItem(SESSION_KEY, JSON.stringify(latestProfile))
+      setUser(latestProfile)
+      setProfileForm(createProfileForm(latestProfile))
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : 'Không thể tải thông tin cá nhân.')
+    }
   }
 
   async function openRecords() {
@@ -316,10 +336,11 @@ function App() {
         authMode === 'register' ? '/api/auth/register' : '/api/auth/login',
         payload,
       )
+      const profile = await requestUserProfile(session.id).catch(() => session)
 
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-      setUser(session)
-      setProfileForm(createProfileForm(session))
+      localStorage.setItem(SESSION_KEY, JSON.stringify(profile))
+      setUser(profile)
+      setProfileForm(createProfileForm(profile))
       setAuthSuccess(authMode === 'register' ? 'Đăng ký thành công.' : 'Đăng nhập thành công.')
       setPassword('')
       setTimeout(closeAuth, 450)

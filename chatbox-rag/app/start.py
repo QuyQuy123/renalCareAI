@@ -8,10 +8,18 @@ from app.ingest import main as ingest_main
 from app.settings import get_settings
 
 
-def main() -> None:
+def should_rebuild_index() -> bool:
     settings = get_settings()
     if not settings.vector_store_file.exists():
-        print("Vector store not found. Building RAG index before starting API...")
+        return True
+
+    return settings.source_file.stat().st_mtime > settings.vector_store_file.stat().st_mtime
+
+
+def main() -> None:
+    settings = get_settings()
+    if should_rebuild_index():
+        print("Vector store is missing or older than sources.json. Building RAG index before starting API...")
         ingest_main()
 
     uvicorn.run(

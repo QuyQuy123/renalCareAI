@@ -54,18 +54,20 @@ RenalCareAI is a personal kidney-care assistant that helps users ask kidney-heal
 
 ```text
 com.renalCareAI.renalCareAI
-  config
-  auth
-  user
-  medicalrecord
-  risk
-  recommendation
-  chat
-  admin
   common
+  config
+  controller
+  dto
+    request
+    response
+  model
+  repository
+  service
+    impl
+  rag
 ```
 
-Each feature package should contain its own controller, service, repository, DTO, and entity classes when needed. Shared exceptions, response wrappers, validation helpers, and constants belong in `common`.
+Backend code is organized by layer. Controllers belong in `controller`, service contracts belong in `service`, service implementations belong in `service.impl`, JPA entities and enums belong in `model`, Spring Data repositories belong in `repository`, request DTOs belong in `dto.request`, response DTOs belong in `dto.response`, and shared exceptions, response wrappers, validation helpers, and constants belong in `common`.
 
 ## Data Model Direction
 

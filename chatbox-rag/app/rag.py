@@ -60,15 +60,30 @@ KIDNEY_SCOPE_TERMS = {
 GENERAL_HEALTH_TERMS = {
     "ăn",
     "ăn uống",
+    "bác sĩ",
     "chế độ ăn",
+    "cấp cứu",
+    "dấu hiệu",
     "dinh dưỡng",
+    "đi khám",
+    "khám",
     "kiêng",
+    "khi nào",
     "luyện tập",
     "thuốc",
     "tập thể dục",
     "uống nước",
     "triệu chứng",
     "xét nghiệm",
+}
+
+KIDNEY_CONTEXTUAL_QUESTIONS = {
+    "khi nào nên đi khám",
+    "khi nào cần đi khám",
+    "khi nào phải đi khám",
+    "khi nào nên gặp bác sĩ",
+    "khi nào cần gặp bác sĩ",
+    "dấu hiệu nào cần đi khám",
 }
 
 OFF_TOPIC_RESPONSE = (
@@ -141,6 +156,10 @@ def contains_any(text: str, terms: set[str]) -> bool:
 
 def is_kidney_related(message: str, history: list[dict[str, str]] | None = None) -> bool:
     if contains_any(message, KIDNEY_SCOPE_TERMS):
+        return True
+
+    normalized_message = message.lower().strip(" ?.؟!！")
+    if normalized_message in KIDNEY_CONTEXTUAL_QUESTIONS:
         return True
 
     recent_history = history[-4:] if history else []

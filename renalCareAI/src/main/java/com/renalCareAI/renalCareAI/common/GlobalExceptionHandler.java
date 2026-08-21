@@ -1,6 +1,4 @@
 package com.renalCareAI.renalCareAI.common;
-
-import com.renalCareAI.renalCareAI.chat.RagServiceException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
