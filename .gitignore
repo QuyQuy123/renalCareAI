@@ -2,19 +2,44 @@
 scripts/bin/harness
 scripts/bin/harness.exe
 
+# Local editor/tool folders
+.agents/
+.idea/
+.vscode/
+.vercel/
+.harness-core/
+.codex/
+.settings/
+frontend/.vercel/
+
+# Local dot-files
+.DS_Store
+.classpath
+.factorypath
+.project
+.springBeans
+.sts4-cache
+
 # Local secrets
 .env
 .env.*
 !.env.example
+**/.env
+**/.env.*
+!**/.env.example
 chatbox-rag/.env
 chatbox-rag/.env.*
 !chatbox-rag/.env.example
 
 # Local RAG artifacts
 chatbox-rag/.venv/
-chatbox-rag/__pycache__/
-chatbox-rag/app/__pycache__/
 chatbox-rag/storage/
 
-.vercel
-.env*
+# Build/dependency/cache artifacts
+__pycache__/
+**/__pycache__/
+*.py[cod]
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+renalCareAI/target/
