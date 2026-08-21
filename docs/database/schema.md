@@ -13,6 +13,11 @@ Stores login identity and account metadata.
 | `id` | `BIGINT` | Yes | Primary key, auto increment. |
 | `full_name` | `VARCHAR(120)` | Yes | Display name shown in the frontend header after login. |
 | `email` | `VARCHAR(160)` | Yes | Unique login email, stored lowercase. |
+| `phone_number` | `VARCHAR(30)` | No | Optional phone number for profile contact. |
+| `date_of_birth` | `DATE` | No | Optional birth date. |
+| `gender` | `VARCHAR(20)` | No | Optional user-selected gender label. |
+| `address` | `VARCHAR(255)` | No | Optional contact address. |
+| `health_note` | `VARCHAR(1000)` | No | Optional health context note entered by the user. |
 | `password_hash` | `VARCHAR(255)` | Yes | BCrypt hash only; never store plain-text passwords. |
 | `role` | `ENUM`/`VARCHAR(30)` | Yes | `CUSTOMER` or `ADMIN`; Hibernate may create a MySQL `ENUM`. |
 | `status` | `ENUM`/`VARCHAR(30)` | Yes | `ACTIVE`, `LOCKED`, or `DISABLED`; Hibernate may create a MySQL `ENUM`. |
@@ -27,10 +32,30 @@ ALTER TABLE users ADD CONSTRAINT uk_users_email UNIQUE (email);
 
 ## Planned Tables
 
+## medical_records
+
+Stores metadata for medical examination files uploaded by a logged-in user.
+The first implementation saves the file locally and stores analysis status;
+AI risk extraction can be attached to these records later.
+
+| Column | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `id` | `BIGINT` | Yes | Primary key, auto increment. |
+| `user_id` | `BIGINT` | Yes | Foreign key to `users.id`. |
+| `original_file_name` | `VARCHAR(255)` | Yes | Name uploaded by the user. |
+| `stored_file_name` | `VARCHAR(255)` | Yes | Generated safe file name on server. |
+| `file_path` | `VARCHAR(600)` | Yes | Server-side storage path. |
+| `content_type` | `VARCHAR(120)` | No | MIME type reported by the upload. |
+| `file_size` | `BIGINT` | Yes | Uploaded file size in bytes. |
+| `status` | `ENUM`/`VARCHAR(40)` | Yes | `UPLOADED`, `PENDING_ANALYSIS`, `ANALYZED`, or `FAILED`. |
+| `risk_summary` | `VARCHAR(1000)` | No | Short analysis status or future AI risk summary. |
+| `uploaded_at` | `DATETIME(6)` | Yes | Created by JPA lifecycle hook. |
+
+## Planned Tables
+
 The architecture also expects these future tables:
 
 - `user_profiles`
-- `medical_records`
 - `health_indicators`
 - `risk_assessments`
 - `recommendations`

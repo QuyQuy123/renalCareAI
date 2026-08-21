@@ -8,5 +8,7 @@
 chatbox-rag/.env
 chatbox-rag/.env.*
 chatbox-rag/storage/
+renalCareAI/uploads/
+uploads/
 frontend/dist/
 *.log

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent, MouseEvent } from 'react'
 import {
   Activity,
   BotMessageSquare,
@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ExternalLink,
   FileText,
+  FolderOpen,
   HeartPulse,
   Loader2,
   LockKeyhole,
@@ -14,7 +15,9 @@ import {
   LogOut,
   Mail,
   MessageCircle,
+  Save,
   Send,
+  Settings,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -33,6 +36,11 @@ type UserSession = {
   fullName: string
   email: string
   role: 'CUSTOMER' | 'ADMIN'
+  phoneNumber?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  address?: string | null
+  healthNote?: string | null
 }
 
 type ApiError = {
@@ -52,8 +60,33 @@ type ChatMessage = {
   sources?: ChatSource[]
 }
 
+type ProfileForm = {
+  fullName: string
+  email: string
+  phoneNumber: string
+  dateOfBirth: string
+  gender: string
+  address: string
+  healthNote: string
+}
+
+type MedicalRecord = {
+  id: number
+  originalFileName: string
+  contentType?: string | null
+  fileSize: number
+  status: 'UPLOADED' | 'PENDING_ANALYSIS' | 'ANALYZED' | 'FAILED'
+  riskSummary?: string | null
+  uploadedAt: string
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 const SESSION_KEY = 'renalcareai_user'
+const sectionRoutes: Record<string, string> = {
+  '/risk': 'risk',
+  '/care': 'care',
+  '/records': 'records',
+}
 
 const careCards = [
   {
@@ -96,6 +129,35 @@ function createChatId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+function createProfileForm(user: UserSession): ProfileForm {
+  return {
+    fullName: user.fullName,
+    email: user.email,
+    phoneNumber: user.phoneNumber ?? '',
+    dateOfBirth: user.dateOfBirth ?? '',
+    gender: user.gender ?? '',
+    address: user.address ?? '',
+    healthNote: user.healthNote ?? '',
+  }
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024) {
+    return `${size} B`
+  }
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`
+  }
+  return `${(size / 1024 / 1024).toFixed(1)} MB`
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
 function App() {
   const [user, setUser] = useState<UserSession | null>(() => {
     const rawSession = localStorage.getItem(SESSION_KEY)
@@ -119,6 +181,18 @@ function App() {
   const [authError, setAuthError] = useState('')
   const [authSuccess, setAuthSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isRecordsOpen, setIsRecordsOpen] = useState(false)
+  const [profileForm, setProfileForm] = useState<ProfileForm | null>(() => (user ? createProfileForm(user) : null))
+  const [profileMessage, setProfileMessage] = useState('')
+  const [profileError, setProfileError] = useState('')
+  const [isProfileSaving, setIsProfileSaving] = useState(false)
+  const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([])
+  const [recordsError, setRecordsError] = useState('')
+  const [recordsMessage, setRecordsMessage] = useState('')
+  const [isRecordsLoading, setIsRecordsLoading] = useState(false)
+  const [isRecordUploading, setIsRecordUploading] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [isChatLoading, setIsChatLoading] = useState(false)
   const [isChatStreaming, setIsChatStreaming] = useState(false)
@@ -134,6 +208,35 @@ function App() {
 
   const firstName = useMemo(() => user?.fullName.trim().split(/\s+/).at(-1), [user])
   const shouldShowSuggestions = chatMessages.length === 1 && !isChatLoading && !isChatStreaming
+
+  useEffect(() => {
+    function scrollToCurrentPath() {
+      const sectionId = sectionRoutes[window.location.pathname]
+      if (!sectionId) {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
+
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+
+    scrollToCurrentPath()
+    window.addEventListener('popstate', scrollToCurrentPath)
+    return () => window.removeEventListener('popstate', scrollToCurrentPath)
+  }, [])
+
+  function navigateToPath(event: MouseEvent<HTMLAnchorElement>, path: string) {
+    event.preventDefault()
+    window.history.pushState({}, '', path)
+
+    const sectionId = sectionRoutes[path]
+    if (!sectionId) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   function openAuth(mode: AuthMode) {
     setAuthMode(mode)
@@ -151,6 +254,50 @@ function App() {
   function logout() {
     localStorage.removeItem(SESSION_KEY)
     setUser(null)
+    setProfileForm(null)
+    setIsUserMenuOpen(false)
+    setIsProfileOpen(false)
+    setIsRecordsOpen(false)
+  }
+
+  function openProfile() {
+    if (!user) {
+      openAuth('login')
+      return
+    }
+    setProfileForm(createProfileForm(user))
+    setProfileMessage('')
+    setProfileError('')
+    setIsUserMenuOpen(false)
+    setIsProfileOpen(true)
+  }
+
+  async function openRecords() {
+    if (!user) {
+      openAuth('login')
+      return
+    }
+    setIsUserMenuOpen(false)
+    setIsRecordsOpen(true)
+    await loadMedicalRecords(user.id)
+  }
+
+  async function loadMedicalRecords(userId: number) {
+    setRecordsError('')
+    setRecordsMessage('')
+    setIsRecordsLoading(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}/medical-records`)
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({}))) as ApiError
+        throw new Error(error.message ?? 'Không thể tải danh sách hồ sơ khám.')
+      }
+      setMedicalRecords((await response.json()) as MedicalRecord[])
+    } catch (error) {
+      setRecordsError(error instanceof Error ? error.message : 'Không thể tải danh sách hồ sơ khám.')
+    } finally {
+      setIsRecordsLoading(false)
+    }
   }
 
   async function handleAuthSubmit(event: FormEvent<HTMLFormElement>) {
@@ -172,6 +319,7 @@ function App() {
 
       localStorage.setItem(SESSION_KEY, JSON.stringify(session))
       setUser(session)
+      setProfileForm(createProfileForm(session))
       setAuthSuccess(authMode === 'register' ? 'Đăng ký thành công.' : 'Đăng nhập thành công.')
       setPassword('')
       setTimeout(closeAuth, 450)
@@ -233,6 +381,83 @@ function App() {
     }
   }
 
+  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!user || !profileForm) {
+      return
+    }
+
+    setProfileError('')
+    setProfileMessage('')
+    setIsProfileSaving(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/${user.id}/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileForm),
+      })
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({}))) as ApiError
+        throw new Error(error.message ?? 'Không thể cập nhật thông tin cá nhân.')
+      }
+
+      const updatedUser = (await response.json()) as UserSession
+      localStorage.setItem(SESSION_KEY, JSON.stringify(updatedUser))
+      setUser(updatedUser)
+      setProfileForm(createProfileForm(updatedUser))
+      setProfileMessage('Đã cập nhật thông tin cá nhân.')
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : 'Không thể cập nhật thông tin cá nhân.')
+    } finally {
+      setIsProfileSaving(false)
+    }
+  }
+
+  async function handleRecordUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!user) {
+      openAuth('login')
+      return
+    }
+
+    const form = event.currentTarget
+    const fileInput = form.elements.namedItem('recordFile') as HTMLInputElement | null
+    const file = fileInput?.files?.[0]
+    if (!file) {
+      setRecordsError('Vui lòng chọn file hồ sơ khám.')
+      return
+    }
+
+    setRecordsError('')
+    setRecordsMessage('')
+    setIsRecordUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const response = await fetch(`${API_BASE_URL}/api/users/${user.id}/medical-records`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({}))) as ApiError
+        throw new Error(error.message ?? 'Không thể tải hồ sơ khám.')
+      }
+
+      const record = (await response.json()) as MedicalRecord
+      setMedicalRecords((current) => [record, ...current])
+      setRecordsMessage('Đã tải hồ sơ khám. Hệ thống sẽ dùng hồ sơ này cho bước phân tích nguy cơ.')
+      form.reset()
+    } catch (error) {
+      setRecordsError(error instanceof Error ? error.message : 'Không thể tải hồ sơ khám.')
+    } finally {
+      setIsRecordUploading(false)
+    }
+  }
+
   async function revealAssistantAnswer(answer: string, sources?: ChatSource[]) {
     const assistantId = createChatId()
     const characters = Array.from(answer)
@@ -273,7 +498,7 @@ function App() {
   return (
     <main className="home-shell">
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Trang chủ RenalCareAI">
+        <a className="brand" href="/" aria-label="Trang chủ RenalCareAI" onClick={(event) => navigateToPath(event, '/')}>
           <span className="brand-mark">
             <HeartPulse size={24} strokeWidth={2.2} />
           </span>
@@ -281,18 +506,36 @@ function App() {
         </a>
 
         <nav className="main-nav" aria-label="Điều hướng chính">
-          <a href="#risk">Đánh giá nguy cơ</a>
-          <a href="#care">Chăm sóc thận</a>
-          <a href="#records">Hồ sơ sức khỏe</a>
+          <a href="/risk" onClick={(event) => navigateToPath(event, '/risk')}>Đánh giá nguy cơ</a>
+          <a href="/care" onClick={(event) => navigateToPath(event, '/care')}>Chăm sóc thận</a>
+          <a href="/records" onClick={(event) => navigateToPath(event, '/records')}>Hồ sơ sức khỏe</a>
         </nav>
 
         <div className="auth-actions">
           {user ? (
             <div className="user-menu">
-              <span className="user-chip" title={user.email}>
+              <button
+                className="user-chip"
+                type="button"
+                title={user.email}
+                onClick={() => setIsUserMenuOpen((value) => !value)}
+              >
                 <span className="user-avatar">{firstName?.charAt(0).toUpperCase() ?? 'U'}</span>
                 <span>{firstName ?? user.fullName}</span>
-              </span>
+                <ChevronRight size={15} className={isUserMenuOpen ? 'menu-chevron open' : 'menu-chevron'} />
+              </button>
+              {isUserMenuOpen && (
+                <div className="user-dropdown">
+                  <button type="button" onClick={openProfile}>
+                    <Settings size={17} />
+                    Thông tin cá nhân
+                  </button>
+                  <button type="button" onClick={openRecords}>
+                    <FolderOpen size={17} />
+                    Hồ sơ khám
+                  </button>
+                </div>
+              )}
               <button className="ghost-button" type="button" onClick={logout}>
                 <LogOut size={18} />
                 Đăng xuất
@@ -400,7 +643,7 @@ function App() {
             từng nhóm như ăn uống, luyện tập, nhắc thuốc và tái khám.
           </p>
         </div>
-        <button className="upload-card" type="button" onClick={() => (user ? undefined : openAuth('login'))}>
+        <button className="upload-card" type="button" onClick={() => (user ? openRecords() : openAuth('login'))}>
           <UploadCloud size={30} />
           <span>{user ? 'Sẵn sàng tải hồ sơ' : 'Đăng nhập để tải hồ sơ'}</span>
           <small>
@@ -496,6 +739,155 @@ function App() {
       >
         <MessageCircle size={26} />
       </button>
+
+      {isProfileOpen && profileForm && (
+        <div className="auth-modal-backdrop" role="presentation" onMouseDown={() => setIsProfileOpen(false)}>
+          <section className="account-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="account-modal-header">
+              <div>
+                <span className="auth-badge">
+                  <Settings size={16} />
+                  Tài khoản
+                </span>
+                <h2 id="profile-title">Thông tin cá nhân</h2>
+                <p>Cập nhật thông tin để hệ thống hỗ trợ chăm sóc thận phù hợp hơn.</p>
+              </div>
+              <button type="button" onClick={() => setIsProfileOpen(false)} aria-label="Đóng thông tin cá nhân">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form className="profile-form" onSubmit={handleProfileSubmit}>
+              <label>
+                Họ và tên
+                <input
+                  value={profileForm.fullName}
+                  onChange={(event) => setProfileForm({ ...profileForm, fullName: event.target.value })}
+                  required
+                  maxLength={120}
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={profileForm.email}
+                  onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
+                  required
+                  maxLength={160}
+                />
+              </label>
+              <label>
+                Số điện thoại
+                <input
+                  value={profileForm.phoneNumber}
+                  onChange={(event) => setProfileForm({ ...profileForm, phoneNumber: event.target.value })}
+                  maxLength={30}
+                  placeholder="Ví dụ: 0901234567"
+                />
+              </label>
+              <label>
+                Ngày sinh
+                <input
+                  type="date"
+                  value={profileForm.dateOfBirth}
+                  onChange={(event) => setProfileForm({ ...profileForm, dateOfBirth: event.target.value })}
+                />
+              </label>
+              <label>
+                Giới tính
+                <select value={profileForm.gender} onChange={(event) => setProfileForm({ ...profileForm, gender: event.target.value })}>
+                  <option value="">Chưa chọn</option>
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                  <option value="Khác">Khác</option>
+                </select>
+              </label>
+              <label>
+                Địa chỉ
+                <input
+                  value={profileForm.address}
+                  onChange={(event) => setProfileForm({ ...profileForm, address: event.target.value })}
+                  maxLength={255}
+                />
+              </label>
+              <label className="profile-wide">
+                Ghi chú sức khỏe
+                <textarea
+                  value={profileForm.healthNote}
+                  onChange={(event) => setProfileForm({ ...profileForm, healthNote: event.target.value })}
+                  maxLength={1000}
+                  placeholder="Ví dụ: tiền sử tăng huyết áp, tiểu đường, thuốc đang dùng..."
+                />
+              </label>
+
+              {profileError && <p className="auth-message error profile-wide">{profileError}</p>}
+              {profileMessage && <p className="auth-message success profile-wide">{profileMessage}</p>}
+
+              <button className="auth-submit profile-wide" type="submit" disabled={isProfileSaving}>
+                <Save size={18} />
+                {isProfileSaving ? 'Đang lưu...' : 'Lưu thông tin'}
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {isRecordsOpen && (
+        <div className="auth-modal-backdrop" role="presentation" onMouseDown={() => setIsRecordsOpen(false)}>
+          <section className="account-modal records-modal" role="dialog" aria-modal="true" aria-labelledby="records-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="account-modal-header">
+              <div>
+                <span className="auth-badge">
+                  <FolderOpen size={16} />
+                  Hồ sơ sức khỏe
+                </span>
+                <h2 id="records-title">Hồ sơ khám</h2>
+                <p>Lưu lại các lần tải hồ sơ khám để chuẩn bị cho bước phân tích nguy cơ bệnh thận.</p>
+              </div>
+              <button type="button" onClick={() => setIsRecordsOpen(false)} aria-label="Đóng hồ sơ khám">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form className="record-upload-form" onSubmit={handleRecordUpload}>
+              <label>
+                Tải hồ sơ khám
+                <input name="recordFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" />
+              </label>
+              <button className="auth-submit" type="submit" disabled={isRecordUploading}>
+                <UploadCloud size={18} />
+                {isRecordUploading ? 'Đang tải...' : 'Tải lên'}
+              </button>
+            </form>
+
+            {recordsError && <p className="auth-message error">{recordsError}</p>}
+            {recordsMessage && <p className="auth-message success">{recordsMessage}</p>}
+
+            <div className="records-list">
+              {isRecordsLoading ? (
+                <div className="records-empty">
+                  <Loader2 size={20} className="spin" />
+                  Đang tải hồ sơ...
+                </div>
+              ) : medicalRecords.length === 0 ? (
+                <div className="records-empty">Bạn chưa tải hồ sơ khám nào.</div>
+              ) : (
+                medicalRecords.map((record) => (
+                  <article className="record-item" key={record.id}>
+                    <div>
+                      <strong>{record.originalFileName}</strong>
+                      <span>{formatDateTime(record.uploadedAt)} · {formatFileSize(record.fileSize)}</span>
+                      <p>{record.riskSummary ?? 'Đang chờ phân tích.'}</p>
+                    </div>
+                    <small>{record.status === 'PENDING_ANALYSIS' ? 'Chờ phân tích' : record.status}</small>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
       {isAuthOpen && (
         <div className="auth-modal-backdrop" role="presentation" onMouseDown={closeAuth}>

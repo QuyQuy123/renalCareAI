@@ -11,6 +11,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "users")
@@ -24,6 +25,21 @@ public class User {
 
     @Column(nullable = false, unique = true, length = 160)
     private String email;
+
+    @Column(name = "phone_number", length = 30)
+    private String phoneNumber;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(length = 20)
+    private String gender;
+
+    @Column(length = 255)
+    private String address;
+
+    @Column(name = "health_note", length = 1000)
+    private String healthNote;
 
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
@@ -72,6 +88,46 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getHealthNote() {
+        return healthNote;
+    }
+
+    public void setHealthNote(String healthNote) {
+        this.healthNote = healthNote;
     }
 
     public String getPasswordHash() {
