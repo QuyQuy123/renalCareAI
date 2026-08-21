@@ -1,3 +1,20 @@
 # Harness core maintenance binary
 scripts/bin/harness
 scripts/bin/harness.exe
+
+# Local secrets
+.env
+.env.*
+!.env.example
+chatbox-rag/.env
+chatbox-rag/.env.*
+!chatbox-rag/.env.example
+
+# Local RAG artifacts
+chatbox-rag/.venv/
+chatbox-rag/__pycache__/
+chatbox-rag/app/__pycache__/
+chatbox-rag/storage/
+
+.vercel
+.env*

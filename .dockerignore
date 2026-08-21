@@ -1,0 +1,12 @@
+.git/
+.idea/
+.vscode/
+**/target/
+**/node_modules/
+**/.venv/
+**/__pycache__/
+chatbox-rag/.env
+chatbox-rag/.env.*
+chatbox-rag/storage/
+frontend/dist/
+*.log

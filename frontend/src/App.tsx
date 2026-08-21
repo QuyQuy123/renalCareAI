@@ -5,16 +5,21 @@ import {
   BotMessageSquare,
   CheckCircle2,
   ChevronRight,
+  ExternalLink,
   FileText,
   HeartPulse,
+  Loader2,
   LockKeyhole,
   LogIn,
   LogOut,
   Mail,
   MessageCircle,
+  Send,
   ShieldCheck,
   Sparkles,
+  Stethoscope,
   UploadCloud,
+  X,
   UserPlus,
   Utensils,
 } from 'lucide-react'
@@ -32,6 +37,19 @@ type UserSession = {
 
 type ApiError = {
   message?: string
+}
+
+type ChatSource = {
+  title: string
+  url: string
+  publisher?: string
+}
+
+type ChatMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  sources?: ChatSource[]
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
@@ -74,6 +92,10 @@ async function requestAuth(path: string, payload: Record<string, string>) {
   return (await response.json()) as UserSession
 }
 
+function createChatId() {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 function App() {
   const [user, setUser] = useState<UserSession | null>(() => {
     const rawSession = localStorage.getItem(SESSION_KEY)
@@ -97,8 +119,21 @@ function App() {
   const [authError, setAuthError] = useState('')
   const [authSuccess, setAuthSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [chatInput, setChatInput] = useState('')
+  const [isChatLoading, setIsChatLoading] = useState(false)
+  const [isChatStreaming, setIsChatStreaming] = useState(false)
+  const [chatError, setChatError] = useState('')
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content:
+        'Xin chào, mình là trợ lý RenalCareAI. Bạn có thể hỏi về dấu hiệu bệnh thận, chỉ số xét nghiệm, ăn uống, luyện tập hoặc cách chuẩn bị khi đi khám.',
+    },
+  ])
 
   const firstName = useMemo(() => user?.fullName.trim().split(/\s+/).at(-1), [user])
+  const shouldShowSuggestions = chatMessages.length === 1 && !isChatLoading && !isChatStreaming
 
   function openAuth(mode: AuthMode) {
     setAuthMode(mode)
@@ -145,6 +180,94 @@ function App() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  async function handleChatSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const message = chatInput.trim()
+    if (!message || isChatLoading || isChatStreaming) {
+      return
+    }
+
+    const userMessage: ChatMessage = {
+      id: createChatId(),
+      role: 'user',
+      content: message,
+    }
+    const nextMessages = [...chatMessages, userMessage]
+    setChatMessages(nextMessages)
+    setChatInput('')
+    setChatError('')
+    setIsChatLoading(true)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          history: chatMessages
+            .filter((item) => item.role === 'user' || item.role === 'assistant')
+            .slice(-8)
+            .map(({ role, content }) => ({ role, content })),
+        }),
+      })
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({}))) as { detail?: string; message?: string }
+        throw new Error(error.message ?? error.detail ?? 'Chatbox chưa sẵn sàng. Vui lòng thử lại sau.')
+      }
+
+      const data = (await response.json()) as { answer: string; sources?: ChatSource[] }
+      await revealAssistantAnswer(data.answer, data.sources)
+    } catch (error) {
+      const messageText =
+        error instanceof Error
+          ? error.message
+          : 'Không thể kết nối trợ lý AI. Vui lòng kiểm tra RAG service.'
+      setChatError(messageText)
+    } finally {
+      setIsChatLoading(false)
+    }
+  }
+
+  async function revealAssistantAnswer(answer: string, sources?: ChatSource[]) {
+    const assistantId = createChatId()
+    const characters = Array.from(answer)
+
+    setIsChatLoading(false)
+    setIsChatStreaming(true)
+    setChatMessages((current) => [
+      ...current,
+      {
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+      },
+    ])
+
+    for (let index = 0; index < characters.length; index += 3) {
+      const nextContent = characters.slice(0, index + 3).join('')
+      setChatMessages((current) =>
+        current.map((item) => (item.id === assistantId ? { ...item, content: nextContent } : item)),
+      )
+      await new Promise((resolve) => setTimeout(resolve, 14))
+    }
+
+    setChatMessages((current) =>
+      current.map((item) =>
+        item.id === assistantId
+          ? {
+              ...item,
+              content: answer,
+              sources,
+            }
+          : item,
+      ),
+    )
+    setIsChatStreaming(false)
   }
 
   return (
@@ -295,21 +418,74 @@ function App() {
 
       <div className={`chat-panel ${isChatOpen ? 'open' : ''}`} aria-live="polite">
         <div className="chat-header">
-          <span>
-            <BotMessageSquare size={18} />
-            RenalCare Assistant
-          </span>
+          <div>
+            <span>
+              <BotMessageSquare size={18} />
+              Trợ lý RenalCareAI
+            </span>
+            <small>Hỏi đáp sức khỏe thận có nguồn tham khảo</small>
+          </div>
           <button type="button" onClick={() => setIsChatOpen(false)} aria-label="Đóng chat">
-            x
+            <X size={18} />
           </button>
         </div>
-        <div className="chat-body">
-          <p>Xin chào, bạn muốn hỏi về dấu hiệu bệnh thận, chỉ số xét nghiệm hay cách ăn uống?</p>
+
+        <div className="chat-status-row">
+          <span>
+            <Stethoscope size={15} />
+            Tham khảo y khoa
+          </span>
+          <span>RAG + OpenAI</span>
         </div>
-        <form className="chat-input">
-          <input aria-label="Nhập câu hỏi về sức khỏe thận" placeholder="Nhập câu hỏi..." />
-          <button type="button">Gửi</button>
+
+        <div className="chat-body">
+          {chatMessages.map((message) => (
+            <article className={`chat-message ${message.role}`} key={message.id}>
+              <p>{message.content}</p>
+              {message.sources && message.sources.length > 0 && (
+                <div className="chat-sources" aria-label="Nguồn tham khảo">
+                  {message.sources.slice(0, 3).map((source) => (
+                    <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>
+                      {source.publisher ?? source.title}
+                      <ExternalLink size={12} />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </article>
+          ))}
+          {isChatLoading && (
+            <div className="chat-message assistant loading">
+              <Loader2 size={18} className="spin" />
+              <span>Đang tìm thông tin phù hợp...</span>
+            </div>
+          )}
+        </div>
+
+        {shouldShowSuggestions && (
+          <div className="chat-suggestions" aria-label="Gợi ý câu hỏi">
+            {['eGFR thấp có nghĩa là gì?', 'Ăn gì để hỗ trợ thận?', 'Khi nào nên đi khám?'].map((suggestion) => (
+              <button type="button" key={suggestion} onClick={() => setChatInput(suggestion)}>
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {chatError && <p className="chat-error">{chatError}</p>}
+
+        <form className="chat-input" onSubmit={handleChatSubmit}>
+          <input
+            aria-label="Nhập câu hỏi về sức khỏe thận"
+            placeholder="Nhập câu hỏi về sức khỏe thận..."
+            value={chatInput}
+            onChange={(event) => setChatInput(event.target.value)}
+          />
+          <button type="submit" disabled={isChatLoading || isChatStreaming || !chatInput.trim()} aria-label="Gửi câu hỏi">
+            {isChatLoading || isChatStreaming ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
+          </button>
         </form>
+        <p className="chat-disclaimer">Thông tin chỉ để tham khảo, không thay thế chẩn đoán hoặc chỉ định của bác sĩ.</p>
       </div>
 
       <button

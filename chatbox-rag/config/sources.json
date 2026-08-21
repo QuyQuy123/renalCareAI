@@ -1,0 +1,74 @@
+[
+  {
+    "title": "CDC - Chronic Kidney Disease Basics",
+    "url": "https://www.cdc.gov/kidney-disease/about/index.html",
+    "publisher": "CDC",
+    "topic": "basics"
+  },
+  {
+    "title": "CDC - Chronic Kidney Disease",
+    "url": "https://www.cdc.gov/kidney-disease/index.html",
+    "publisher": "CDC",
+    "topic": "overview"
+  },
+  {
+    "title": "National Kidney Foundation - Nutrition and Kidney Disease Stages 1-5",
+    "url": "https://www.kidney.org/kidney-topics/nutrition-and-kidney-disease-stages-1-5-not-dialysis",
+    "publisher": "National Kidney Foundation",
+    "topic": "nutrition"
+  },
+  {
+    "title": "National Kidney Foundation - 7 Golden Rules of Kidney Disease Prevention",
+    "url": "https://www.kidney.org/7-golden-rules-kidney-disease-prevention",
+    "publisher": "National Kidney Foundation",
+    "topic": "prevention"
+  },
+  {
+    "title": "National Kidney Foundation - CKD Risk Factors",
+    "url": "https://www.kidney.org/kidney-topics/risk-factors-chronic-kidney-disease?page=0",
+    "publisher": "National Kidney Foundation",
+    "topic": "risk"
+  },
+  {
+    "title": "National Kidney Foundation - DASH Diet",
+    "url": "https://www.kidney.org/kidney-topics/dash-diet",
+    "publisher": "National Kidney Foundation",
+    "topic": "nutrition"
+  },
+  {
+    "title": "NIDDK - Healthy Eating for Adults with CKD",
+    "url": "https://www.niddk.nih.gov/health-information/kidney-disease/chronic-kidney-disease-ckd/healthy-eating-adults-chronic-kidney-disease?dkrd=nkdep.nih.gov%2Fresources%2Feating-right.shtml",
+    "publisher": "NIDDK",
+    "topic": "nutrition"
+  },
+  {
+    "title": "NIDDK - Evaluate Patients with CKD",
+    "url": "https://www.niddk.nih.gov/health-information/professionals/clinical-tools-patient-management/kidney-disease/identify-manage-patients/evaluate-ckd",
+    "publisher": "NIDDK",
+    "topic": "testing"
+  },
+  {
+    "title": "NIDDK - What Is Chronic Kidney Disease?",
+    "url": "https://www.niddk.nih.gov/health-information/kidney-disease/chronic-kidney-disease-ckd/what-is-chronic-kidney-disease",
+    "publisher": "NIDDK",
+    "topic": "overview"
+  },
+  {
+    "title": "NIDDK - Slow Progression and Reduce Complications",
+    "url": "https://www.niddk.nih.gov/health-information/professionals/clinical-tools-patient-management/kidney-disease/identify-manage-patients/manage-ckd/slow-progression-reduce-complications",
+    "publisher": "NIDDK",
+    "topic": "management"
+  },
+  {
+    "title": "NIDDK - Prevention",
+    "url": "https://www.niddk.nih.gov/health-information/kidney-disease/chronic-kidney-disease-ckd/prevention",
+    "publisher": "NIDDK",
+    "topic": "prevention"
+  },
+  {
+    "title": "MedlinePlus - Chronic Kidney Disease",
+    "url": "https://medlineplus.gov/chronickidneydisease.html",
+    "publisher": "MedlinePlus",
+    "topic": "overview"
+  }
+]

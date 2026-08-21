@@ -1,5 +1,6 @@
 package com.renalCareAI.renalCareAI.common;
 
+import com.renalCareAI.renalCareAI.chat.RagServiceException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,5 +29,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), message));
+    }
+
+    @ExceptionHandler(RagServiceException.class)
+    ResponseEntity<ApiError> handleRagService(RagServiceException exception) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_GATEWAY)
+                .body(new ApiError(Instant.now(), HttpStatus.BAD_GATEWAY.value(), exception.getMessage()));
     }
 }
