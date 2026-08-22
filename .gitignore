@@ -33,7 +33,7 @@ chatbox-rag/.env.*
 
 # Local RAG artifacts
 chatbox-rag/.venv/
-chatbox-rag/storage/
+chatbox-rag/storage/*.tmp
 
 # Build/dependency/cache artifacts
 __pycache__/
