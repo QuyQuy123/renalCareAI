@@ -1,5 +1,6 @@
 package com.renalCareAI.renalCareAI.controller;
 
+import com.renalCareAI.renalCareAI.dto.request.SendOtpRequest;
 import com.renalCareAI.renalCareAI.dto.request.LoginRequest;
 import com.renalCareAI.renalCareAI.dto.request.RegisterRequest;
 import com.renalCareAI.renalCareAI.dto.response.AuthResponse;
@@ -19,6 +20,12 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+    @PostMapping("/send-otp")
+    @ResponseStatus(HttpStatus.OK)
+    public void sendOtp(@Valid @RequestBody SendOtpRequest request) {
+        authService.sendOtp(request);
     }
 
     @PostMapping("/register")

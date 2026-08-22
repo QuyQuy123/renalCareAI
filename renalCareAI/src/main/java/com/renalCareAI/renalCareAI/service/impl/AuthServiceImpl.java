@@ -8,20 +8,55 @@ import com.renalCareAI.renalCareAI.model.User;
 import com.renalCareAI.renalCareAI.model.UserRole;
 import com.renalCareAI.renalCareAI.repository.UserRepository;
 import com.renalCareAI.renalCareAI.service.AuthService;
+import com.renalCareAI.renalCareAI.dto.request.SendOtpRequest;
+import com.renalCareAI.renalCareAI.model.OtpSession;
+import com.renalCareAI.renalCareAI.repository.OtpSessionRepository;
+import com.renalCareAI.renalCareAI.service.EmailService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Random;
+
 @Service
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final OtpSessionRepository otpSessionRepository;
+    private final EmailService emailService;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                           OtpSessionRepository otpSessionRepository, EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.otpSessionRepository = otpSessionRepository;
+        this.emailService = emailService;
+    }
+
+    @Transactional
+    @Override
+    public void sendOtp(SendOtpRequest request) {
+        String normalizedEmail = normalizeEmail(request.email());
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email nay da duoc dang ky");
+        }
+
+        // Generate 6 digit OTP
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+
+        // Create or Update OTP Session
+        OtpSession otpSession = otpSessionRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElse(new OtpSession());
+        otpSession.setEmail(normalizedEmail);
+        otpSession.setOtpCode(otp);
+        otpSession.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+        
+        otpSessionRepository.save(otpSession);
+        emailService.sendOtpEmail(normalizedEmail, otp);
     }
 
     @Transactional
@@ -32,6 +67,17 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email nay da duoc dang ky");
         }
 
+        OtpSession session = otpSessionRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vui long yeu cau ma OTP truoc"));
+
+        if (!session.getOtpCode().equals(request.otp())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ma OTP khong chinh xac");
+        }
+
+        if (session.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ma OTP da het han");
+        }
+
         User user = new User();
         user.setFullName(request.fullName().trim());
         user.setEmail(normalizedEmail);
@@ -39,7 +85,10 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(UserRole.CUSTOMER);
         user.setStatus(AccountStatus.ACTIVE);
 
-        return AuthResponse.from(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+        otpSessionRepository.delete(session);
+
+        return AuthResponse.from(savedUser);
     }
 
     @Transactional(readOnly = true)

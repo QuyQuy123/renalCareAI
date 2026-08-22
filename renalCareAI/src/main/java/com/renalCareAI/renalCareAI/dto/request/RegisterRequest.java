@@ -16,6 +16,10 @@ public record RegisterRequest(
 
         @NotBlank(message = "Vui long nhap mat khau")
         @Size(min = 8, max = 72, message = "Mat khau phai co tu 8 den 72 ky tu")
-        String password
+        String password,
+
+        @NotBlank(message = "Vui long nhap ma xac nhan OTP")
+        @Size(min = 6, max = 6, message = "Ma OTP phai co dung 6 ky tu")
+        String otp
 ) {
 }

@@ -292,11 +292,13 @@ function App() {
     }
   })
   const [authMode, setAuthMode] = useState<AuthMode>('login')
+  const [authStep, setAuthStep] = useState<'info' | 'otp'>('info')
   const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
   const [authError, setAuthError] = useState('')
   const [authSuccess, setAuthSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -368,6 +370,9 @@ function App() {
 
   function closeAuth() {
     setIsAuthOpen(false)
+    setAuthMode('login')
+    setAuthStep('info')
+    setOtp('')
     setAuthError('')
     setAuthSuccess('')
   }
@@ -437,9 +442,25 @@ function App() {
     setIsSubmitting(true)
 
     try {
+      if (authMode === 'register' && authStep === 'info') {
+        const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim() })
+        })
+        if (!response.ok) {
+          const error = (await response.json().catch(() => ({}))) as ApiError
+          throw new Error(error.message ?? 'Không thể gửi mã OTP.')
+        }
+        setAuthStep('otp')
+        setAuthSuccess('Đã gửi mã OTP đến email của bạn.')
+        setIsSubmitting(false)
+        return
+      }
+
       const payload: Record<string, string> =
         authMode === 'register'
-          ? { fullName: fullName.trim(), email: email.trim(), password }
+          ? { fullName: fullName.trim(), email: email.trim(), password, otp: otp.trim() }
           : { email: email.trim(), password }
 
       const session = await requestAuth(
@@ -1188,7 +1209,7 @@ function App() {
                 <LockKeyhole size={16} />
                 Bảo mật tài khoản
               </span>
-              <h2 id="auth-title">{authMode === 'register' ? 'Tạo tài khoản RenalCareAI' : 'Đăng nhập RenalCareAI'}</h2>
+              <h2 id="auth-title">{authMode === 'register' ? (authStep === 'info' ? 'Tạo tài khoản RenalCareAI' : 'Nhập mã xác nhận') : 'Đăng nhập RenalCareAI'}</h2>
               <p>
                 Đăng nhập bằng email để lưu hồ sơ khám, theo dõi nguy cơ và nhận
                 gợi ý chăm sóc phù hợp hơn.
@@ -1209,43 +1230,62 @@ function App() {
                 </label>
               )}
 
-              <label>
-                Email
-                <span className="input-with-icon">
-                  <Mail size={18} />
+              {authMode === 'register' && authStep === 'otp' ? (
+                <label>
+                  Mã xác nhận OTP
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="you@example.com"
+                    type="text"
+                    value={otp}
+                    onChange={(event) => setOtp(event.target.value)}
+                    placeholder="Nhập 6 số từ email"
                     required
+                    maxLength={6}
+                    minLength={6}
+                    pattern="[0-9]{6}"
+                    title="Mã OTP phải bao gồm đúng 6 chữ số"
                   />
-                </span>
-              </label>
+                </label>
+              ) : (
+                <>
+                  <label>
+                    Email
+                    <span className="input-with-icon">
+                      <Mail size={18} />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        placeholder="you@example.com"
+                        required
+                      />
+                    </span>
+                  </label>
 
-              <label>
-                Mật khẩu
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder={authMode === 'register' ? 'Tối thiểu 8 ký tự' : 'Nhập mật khẩu'}
-                  required
-                  minLength={authMode === 'register' ? 8 : undefined}
-                />
-              </label>
+                  <label>
+                    Mật khẩu
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder={authMode === 'register' ? 'Tối thiểu 8 ký tự' : 'Nhập mật khẩu'}
+                      required
+                      minLength={authMode === 'register' ? 8 : undefined}
+                    />
+                  </label>
+                </>
+              )}
 
               {authError && <p className="auth-message error">{authError}</p>}
               {authSuccess && <p className="auth-message success">{authSuccess}</p>}
 
               <button className="auth-submit" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Đang xử lý...' : authMode === 'register' ? 'Đăng ký' : 'Đăng nhập'}
+                {isSubmitting ? 'Đang xử lý...' : authMode === 'register' ? (authStep === 'info' ? 'Tiếp tục' : 'Hoàn tất Đăng ký') : 'Đăng nhập'}
               </button>
             </form>
 
             <div className="auth-switch">
               {authMode === 'register' ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
-              <button type="button" onClick={() => setAuthMode(authMode === 'register' ? 'login' : 'register')}>
+              <button type="button" onClick={() => { setAuthMode(authMode === 'register' ? 'login' : 'register'); setAuthStep('info') }}>
                 {authMode === 'register' ? 'Đăng nhập' : 'Đăng ký mới'}
               </button>
             </div>
