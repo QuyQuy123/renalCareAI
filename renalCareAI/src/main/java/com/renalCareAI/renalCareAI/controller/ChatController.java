@@ -14,13 +14,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/chat")
 public class ChatController {
     private final RagChatClient ragChatClient;
+    private final com.renalCareAI.renalCareAI.service.AnalyticsTrackerService analyticsTrackerService;
 
-    public ChatController(RagChatClient ragChatClient) {
+    public ChatController(
+            RagChatClient ragChatClient,
+            com.renalCareAI.renalCareAI.service.AnalyticsTrackerService analyticsTrackerService
+    ) {
         this.ragChatClient = ragChatClient;
+        this.analyticsTrackerService = analyticsTrackerService;
     }
 
     @PostMapping
     public ResponseEntity<ChatResponse> ask(@Valid @RequestBody ChatRequest request) {
-        return ResponseEntity.ok(ragChatClient.ask(request));
+        ChatResponse response = ragChatClient.ask(request);
+        analyticsTrackerService.logChatMessage(request, response);
+        return ResponseEntity.ok(response);
     }
 }

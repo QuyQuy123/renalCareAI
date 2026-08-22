@@ -10,7 +10,13 @@ public record ChatRequest(
         @Size(min = 2, max = 2000)
         String message,
 
-        List<@Valid ChatHistoryItem> history
+        List<@Valid ChatHistoryItem> history,
+
+        Long userId,
+
+        String userEmail,
+
+        String userName
 ) {
     public ChatRequest {
         history = history == null ? List.of() : List.copyOf(history);

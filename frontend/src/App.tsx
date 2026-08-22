@@ -28,6 +28,7 @@ import {
   UserPlus,
   Utensils,
 } from 'lucide-react'
+import { AdminLayout } from './components/admin/AdminLayout'
 import heroImage from './assets/renal-hero.png'
 import './App.css'
 
@@ -328,11 +329,44 @@ function App() {
     },
   ])
 
+  const [isAdminView, setIsAdminView] = useState(() => window.location.pathname.startsWith('/admin'))
+
   const firstName = useMemo(() => user?.fullName.trim().split(/\s+/).at(-1), [user])
   const shouldShowSuggestions = chatMessages.length === 1 && !isChatLoading && !isChatStreaming
 
   useEffect(() => {
-    function scrollToCurrentPath() {
+    // Không ghi nhận lượt truy cập khi admin đang làm việc hoặc truy cập trang quản trị
+    if (window.location.pathname.startsWith('/admin') || user?.role === 'ADMIN') {
+      return
+    }
+
+    let visitorId = localStorage.getItem('renalcareai_visitor_id')
+    if (!visitorId) {
+      visitorId = 'vis_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36)
+      localStorage.setItem('renalcareai_visitor_id', visitorId)
+    }
+
+    // Đánh dấu session để tránh nhân bản lượt xem khi F5 liên tục trong cùng 1 phiên
+    const sessionKey = 'renalcareai_session_tracked_' + window.location.pathname
+    if (sessionStorage.getItem(sessionKey)) {
+      return
+    }
+    sessionStorage.setItem(sessionKey, 'true')
+
+    fetch(`${API_BASE_URL}/api/analytics/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visitorId,
+        page: window.location.pathname,
+        isAdmin: false,
+      }),
+    }).catch(() => {})
+  }, [user?.role])
+
+  useEffect(() => {
+    function handlePathChange() {
+      setIsAdminView(window.location.pathname.startsWith('/admin'))
       const sectionId = sectionRoutes[window.location.pathname]
       if (!sectionId) {
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -342,9 +376,9 @@ function App() {
       document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
 
-    scrollToCurrentPath()
-    window.addEventListener('popstate', scrollToCurrentPath)
-    return () => window.removeEventListener('popstate', scrollToCurrentPath)
+    handlePathChange()
+    window.addEventListener('popstate', handlePathChange)
+    return () => window.removeEventListener('popstate', handlePathChange)
   }, [])
 
   function navigateToPath(event: MouseEvent<HTMLAnchorElement>, path: string) {
@@ -696,6 +730,20 @@ function App() {
     setIsChatStreaming(false)
   }
 
+  if (isAdminView && user?.role === 'ADMIN') {
+    return (
+      <AdminLayout
+        apiBaseUrl={API_BASE_URL}
+        adminUser={user}
+        onExitAdmin={() => {
+          setIsAdminView(false)
+          window.history.pushState({}, '', '/')
+        }}
+        onLogout={logout}
+      />
+    )
+  }
+
   return (
     <main className="home-shell">
       <header className="site-header">
@@ -716,6 +764,20 @@ function App() {
         <div className="auth-actions">
           {user ? (
             <div className="user-menu">
+              {user.role === 'ADMIN' && (
+                <button
+                  className="nav-admin-btn"
+                  type="button"
+                  onClick={() => {
+                    setIsAdminView(true)
+                    window.history.pushState({}, '', '/admin')
+                  }}
+                  title="Mở Trang Quản trị hệ thống"
+                >
+                  <ShieldCheck size={16} />
+                  <span>Trang Admin</span>
+                </button>
+              )}
               <button
                 className="user-chip"
                 type="button"
@@ -728,6 +790,19 @@ function App() {
               </button>
               {isUserMenuOpen && (
                 <div className="user-dropdown">
+                  {user.role === 'ADMIN' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false)
+                        setIsAdminView(true)
+                        window.history.pushState({}, '', '/admin')
+                      }}
+                    >
+                      <ShieldCheck size={17} />
+                      Trang Quản trị
+                    </button>
+                  )}
                   <button type="button" onClick={openProfile}>
                     <Settings size={17} />
                     Thông tin cá nhân
