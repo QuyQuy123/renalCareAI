@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RenalCareAI - Báo Cáo Thuyết Trình Dự Án</title>
+  <style>
+    :root {
+      --bg-dark: #070b14;
+      --card-bg: rgba(17, 24, 39, 0.88);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --primary: #38bdf8;
+      --accent-purple: #c084fc;
+      --accent-teal: #2dd4bf;
+      --accent-amber: #fbbf24;
+      --accent-rose: #fb7185;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      font-size: 16px;
+    }
+
+    /* Ambient Glow */
+    .ambient-glow {
+      position: fixed;
+      width: 550px;
+      height: 550px;
+      border-radius: 50%;
+      filter: blur(140px);
+      pointer-events: none;
+      opacity: 0.28;
+      z-index: 0;
+    }
+    .glow-1 { top: -100px; left: -100px; background: #0284c7; }
+    .glow-2 { bottom: -100px; right: -100px; background: #9333ea; }
+
+    /* Top Progress Bar */
+    .progress-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      z-index: 100;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 9%;
+      background: linear-gradient(90deg, #0d9488, #38bdf8, #a855f7);
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Main Slides Container */
+    .slides-wrapper {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 40px;
+      z-index: 1;
+    }
+
+    .slide {
+      position: absolute;
+      width: 100%;
+      max-width: 1220px;
+      max-height: calc(100vh - 100px);
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--card-border);
+      border-radius: 26px;
+      padding: 40px 52px;
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.96) translateY(15px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+      box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1) translateY(0);
+    }
+
+    /* Slide Header */
+    .slide-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .slide-title-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .slide-number-badge {
+      background: linear-gradient(135deg, #0d9488, #0284c7);
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 9px;
+      letter-spacing: 0.5px;
+    }
+    .slide-title {
+      font-size: 30px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    .brand-tag {
+      font-size: 15px;
+      color: var(--text-muted);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    /* Hero Slide */
+    .hero-title {
+      font-size: 52px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #ffffff 0%, #38bdf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 14px;
+      line-height: 1.15;
+    }
+    .hero-sub {
+      font-size: 22px;
+      color: #cbd5e1;
+      line-height: 1.55;
+      margin-bottom: 28px;
+    }
+
+    /* Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 16px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 16px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .feature-card {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 24px 22px;
+      transition: all 0.2s ease;
+    }
+    .feature-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .card-icon-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .card-icon-pill.teal { background: rgba(13, 148, 136, 0.18); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); }
+    .card-icon-pill.sky { background: rgba(2, 132, 199, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .card-icon-pill.purple { background: rgba(147, 51, 234, 0.18); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); }
+    .card-icon-pill.amber { background: rgba(217, 119, 6, 0.18); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .card-icon-pill.rose { background: rgba(225, 29, 72, 0.18); color: #fb7185; border: 1px solid rgba(251, 113, 133, 0.3); }
+
+    .feature-card h4 {
+      font-size: 19px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 10px;
+    }
+    .feature-card p, .feature-card ul {
+      font-size: 15.5px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    .feature-card ul {
+      padding-left: 20px;
+    }
+    .feature-card li {
+      margin-bottom: 8px;
+    }
+    .feature-card li strong {
+      color: #f1f5f9;
+    }
+
+    /* Diagram Image Frame */
+    .arch-img-frame {
+      width: 100%;
+      background: #020617;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.15);
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    .arch-img-frame img {
+      width: 100%;
+      max-height: 380px;
+      object-fit: contain;
+      display: block;
+      border-radius: 16px;
+    }
+
+    /* Diagram Code Box */
+    .diagram-box {
+      background: #020617;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 18px 22px;
+      font-family: 'Fira Code', monospace, Consolas;
+      font-size: 14px;
+      color: #38bdf8;
+      line-height: 1.5;
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+
+    /* Highlight Banner */
+    .highlight-banner {
+      background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(56, 189, 248, 0.1) 100%);
+      border: 1px solid rgba(45, 212, 191, 0.25);
+      border-radius: 16px;
+      padding: 18px 24px;
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .highlight-banner p {
+      font-size: 16px;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+    .highlight-banner strong {
+      color: #2dd4bf;
+    }
+
+    /* ========================================= */
+    /* TEAM MEMBERS SLIDE STYLES & PHOTO UPLOAD */
+    /* ========================================= */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 18px;
+    }
+
+    .member-card {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 22px;
+      padding: 28px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .member-card:hover {
+      border-color: rgba(168, 85, 247, 0.45);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.5);
+    }
+
+    .member-avatar-box {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      margin-bottom: 18px;
+      cursor: pointer;
+      overflow: hidden;
+      border: 3.5px solid rgba(56, 189, 248, 0.6);
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.3);
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+    }
+    .member-card:nth-child(2) .member-avatar-box {
+      border-color: rgba(192, 132, 252, 0.6);
+      box-shadow: 0 0 24px rgba(192, 132, 252, 0.3);
+    }
+    .member-card:nth-child(3) .member-avatar-box {
+      border-color: rgba(45, 212, 191, 0.6);
+      box-shadow: 0 0 24px rgba(45, 212, 191, 0.3);
+    }
+
+    .member-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+
+    .avatar-upload-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(2px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      gap: 6px;
+    }
+    .member-avatar-box:hover .avatar-upload-overlay {
+      opacity: 1;
+    }
+
+    .member-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+    .member-role {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .member-role.lead { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+    .member-role.ai { background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); }
+    .member-role.frontend { background: rgba(45, 212, 191, 0.18); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.35); }
+
+    .member-desc-list {
+      list-style: none;
+      padding: 0;
+      text-align: left;
+      font-size: 14.5px;
+      color: #94a3b8;
+      line-height: 1.6;
+      width: 100%;
+    }
+    .member-desc-list li {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .member-desc-list li::before {
+      content: '▹';
+      color: #38bdf8;
+      font-weight: bold;
+    }
+
+    .upload-btn-chip {
+      margin-top: 16px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e2e8f0;
+      padding: 7px 16px;
+      border-radius: 9px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .upload-btn-chip:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Bottom Navigation Bar */
+    .nav-toolbar {
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 45px;
+      background: rgba(11, 15, 25, 0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
+    }
+
+    .nav-left, .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 14.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .nav-btn.primary {
+      background: #0d9488;
+      border-color: #0d9488;
+      color: #ffffff;
+    }
+    .nav-btn.primary:hover {
+      background: #0f766e;
+    }
+
+    .slide-counter {
+      font-size: 15px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .slide-counter strong {
+      color: #ffffff;
+    }
+
+    .keyboard-hint {
+      font-size: 13.5px;
+      color: #64748b;
+    }
+    .keyboard-hint kbd {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-family: monospace;
+      color: #cbd5e1;
+    }
+
+    /* Print Styles for Dark Luxury PDF Export (Full Color 16:9 Landscape) */
+    @page {
+      size: 16in 9in landscape;
+      margin: 0;
+    }
+
+    @media print {
+      html, body {
+        width: 16in !important;
+        height: auto !important;
+        background-color: #070b14 !important;
+        background: #070b14 !important;
+        color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        overflow: visible !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .ambient-glow, .progress-bar-container, .nav-toolbar, .upload-btn-chip, .avatar-upload-overlay {
+        display: none !important;
+      }
+
+      .slides-wrapper {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .slide {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        position: relative !important;
+        width: 16in !important;
+        height: 9in !important;
+        max-width: 16in !important;
+        max-height: 9in !important;
+        box-sizing: border-box !important;
+        padding: 0.55in 0.75in !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        background: #070b14 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .slide-header {
+        border-bottom: 2px solid rgba(255, 255, 255, 0.15) !important;
+        margin-bottom: 18px !important;
+        padding-bottom: 12px !important;
+      }
+
+      .slide-title {
+        color: #ffffff !important;
+        font-size: 32px !important;
+      }
+
+      .hero-title {
+        font-size: 50px !important;
+        color: #38bdf8 !important;
+        -webkit-text-fill-color: initial !important;
+      }
+
+      .feature-card, .member-card {
+        background: rgba(17, 24, 39, 0.95) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+        color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .feature-card h4, .member-name {
+        color: #ffffff !important;
+      }
+
+      .feature-card p, .feature-card ul, .member-desc-list {
+        color: #cbd5e1 !important;
+      }
+
+      .card-icon-pill.teal, .member-role.frontend { background: rgba(13, 148, 136, 0.35) !important; color: #2dd4bf !important; }
+      .card-icon-pill.sky, .member-role.lead { background: rgba(2, 132, 199, 0.35) !important; color: #38bdf8 !important; }
+      .card-icon-pill.purple, .member-role.ai { background: rgba(147, 51, 234, 0.35) !important; color: #c084fc !important; }
+      .card-icon-pill.amber { background: rgba(217, 119, 6, 0.35) !important; color: #fbbf24 !important; }
+      .card-icon-pill.rose { background: rgba(225, 29, 72, 0.35) !important; color: #fb7185 !important; }
+
+      .arch-img-frame {
+        background: #020617 !important;
+        border: 1.5px solid rgba(56, 189, 248, 0.4) !important;
+      }
+
+      .arch-img-frame img {
+        max-height: 4.8in !important;
+      }
+
+      .highlight-banner {
+        background: rgba(13, 148, 136, 0.25) !important;
+        border: 1.5px solid rgba(45, 212, 191, 0.4) !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <!-- Top Progress Bar -->
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- Slides Viewport -->
+  <main class="slides-wrapper">
+
+    <!-- SLIDE 1: Title -->
+    <section class="slide active" data-slide="1">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 01</span>
+          <h2 class="slide-title">Báo Cáo Dự Án</h2>
+        </div>
+        <span class="brand-tag">RENALCAREAI • 2026</span>
+      </div>
+      <h1 class="hero-title">RenalCareAI</h1>
+      <p class="hero-sub">Hệ Sinh Thái Trợ Lý AI Thông Minh Hỗ Trợ Sàng Lọc, Phân Tích Chỉ Số & Quản Lý Sức Khỏe Bệnh Thận</p>
+      
+      <div class="grid-3">
+        <div class="feature-card">
+          <div class="card-icon-pill teal">🤖 AI & RAG Engine</div>
+          <h4>Trợ Lý RenalCareAI</h4>
+          <p>Tư vấn chuyên sâu 24/7 với dữ liệu trích xuất từ phác đồ y khoa chuẩn xác, giải đáp thắc mắc và không gây ảo giác.</p>
+        </div>
+        <div class="feature-card">
+          <div class="card-icon-pill sky">📊 Machine Learning</div>
+          <h4>Dự Đoán</h4>
+          <p>Phân tầng nguy cơ rủi ro tự động từ các chỉ số xét nghiệm: Creatinine, eGFR, BUN, Albumin, Huyết áp...</p>
+        </div>
+        <div class="feature-card">
+          <div class="card-icon-pill purple">🛡️ Admin Portal</div>
+          <h4>Quản Trị Bệnh Án</h4>
+          <p>Dashboard thống kê thời gian thực, lưu vết toàn bộ phiên hỏi đáp và hồ sơ bệnh nhân tập trung.</p>
+        </div>
+      </div>
+
+      <div class="highlight-banner">
+        <p><strong>Dự án:</strong> RenalCareAI — Hệ thống Trợ lý AI Chăm sóc Sức khỏe Thận</p>
+        <p><strong>Công nghệ:</strong> React 18 • TypeScript • Spring Boot 3 • Python FastAPI • Scikit-learn</p>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: ĐỘI NGŨ THÀNH VIÊN (PHOTO UPLOADABLE) -->
+    <section class="slide" data-slide="2">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 02</span>
+          <h2 class="slide-title">Đội Ngũ Phát Triển Dự Án</h2>
+        </div>
+        <span class="brand-tag">TEAM MEMBERS</span>
+      </div>
+
+      <div class="team-grid">
+        <!-- Member 1: Nguyễn Văn Quý -->
+        <div class="member-card">
+          <div class="member-avatar-box" onclick="document.getElementById('avatarInput1').click()" title="Nhấp để tải hoặc thay ảnh đại diện">
+            <img id="avatarImg1" class="member-avatar-img" style="display:none;" alt="Nguyễn Văn Quý" />
+            <div id="placeholder1" class="avatar-placeholder">NVQ</div>
+            <div class="avatar-upload-overlay">
+              <span>📷</span>
+              <span>Đổi ảnh</span>
+            </div>
+          </div>
+          <input type="file" id="avatarInput1" accept="image/*" style="display:none" onchange="uploadMemberAvatar(event, 1)" />
+
+          <h3 class="member-name">Nguyễn Văn Quý</h3>
+          <span class="member-role lead">Trưởng Nhóm • Fullstack & System</span>
+          <ul class="member-desc-list">
+            <li>Thiết kế kiến trúc hệ thống tổng thể Backend Spring Boot & Frontend React.</li>
+            <li>Tích hợp luồng bảo mật OTP Email, phân quyền RBAC & Dashboard Admin.</li>
+            <li>Điều phối tích hợp mô hình Machine Learning & Trợ lý RenalCareAI.</li>
+          </ul>
+        </div>
+
+        <!-- Member 2: Nguyễn Quốc Tiến -->
+        <div class="member-card">
+          <div class="member-avatar-box" onclick="document.getElementById('avatarInput2').click()" title="Nhấp để tải hoặc thay ảnh đại diện">
+            <img id="avatarImg2" class="member-avatar-img" style="display:none;" alt="Nguyễn Quốc Tiến" />
+            <div id="placeholder2" class="avatar-placeholder">NQT</div>
+            <div class="avatar-upload-overlay">
+              <span>📷</span>
+              <span>Đổi ảnh</span>
+            </div>
+          </div>
+          <input type="file" id="avatarInput2" accept="image/*" style="display:none" onchange="uploadMemberAvatar(event, 2)" />
+
+          <h3 class="member-name">Nguyễn Quốc Tiến</h3>
+          <span class="member-role ai">AI & Machine Learning Engineer</span>
+          <ul class="member-desc-list">
+            <li>Nghiên cứu & huấn luyện mô hình Machine Learning dự đoán nguy cơ bệnh thận.</li>
+            <li>Xây dựng RAG Service (Python FastAPI, LangChain, Vector Database).</li>
+            <li>Tối ưu hóa pipeline trích xuất tri thức y khoa chuẩn mực cho Chatbox.</li>
+          </ul>
+        </div>
+
+        <!-- Member 3: Trần Minh Chiến -->
+        <div class="member-card">
+          <div class="member-avatar-box" onclick="document.getElementById('avatarInput3').click()" title="Nhấp để tải hoặc thay ảnh đại diện">
+            <img id="avatarImg3" class="member-avatar-img" style="display:none;" alt="Trần Minh Chiến" />
+            <div id="placeholder3" class="avatar-placeholder">TMC</div>
+            <div class="avatar-upload-overlay">
+              <span>📷</span>
+              <span>Đổi ảnh</span>
+            </div>
+          </div>
+          <input type="file" id="avatarInput3" accept="image/*" style="display:none" onchange="uploadMemberAvatar(event, 3)" />
+
+          <h3 class="member-name">Trần Minh Chiến</h3>
+          <span class="member-role frontend">Frontend Developer & Data Analysis</span>
+          <ul class="member-desc-list">
+            <li>Phát triển giao diện người dùng React + TypeScript & Design System Luxury.</li>
+            <li>Triển khai luồng OCR Vision trích xuất hồ sơ xét nghiệm y tế tự động.</li>
+            <li>Kiểm thử giao diện, tối ưu hóa trải nghiệm người dùng (UX/UI).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: Bối cảnh -->
+    <section class="slide" data-slide="3">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 03</span>
+          <h2 class="slide-title">Bối Cảnh & Tính Cấp Thiết</h2>
+        </div>
+        <span class="brand-tag">VẤN ĐỀ & THÁCH THỨC</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="feature-card">
+          <div class="card-icon-pill rose">🔴 Thực Trạng Y Tế</div>
+          <h4>Gánh Nặng Bệnh Thận</h4>
+          <ul>
+            <li><strong>Hơn 5 triệu người</strong> tại Việt Nam và <strong>10% dân số thế giới</strong> đang mắc các bệnh lý về thận.</li>
+            <li>Bệnh thường diễn tiến <strong>âm thầm ở giai đoạn đầu</strong>, phần lớn người bệnh chỉ phát hiện khi đã suy thận nặng.</li>
+            <li>Chi phí chạy thận nhân tạo và ghép thận gây gánh nặng kinh tế rất lớn cho gia đình và bảo hiểm y tế.</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill amber">⚠️ Rào Cản Người Bệnh</div>
+          <h4>Thách Thức Trong Tự Quản Lý</h4>
+          <ul>
+            <li><strong>Khó hiểu chỉ số sinh hóa:</strong> Bệnh nhân bối rối trước bảng kết quả xét nghiệm (*eGFR, Creatinine, Protein niệu...*).</li>
+            <li><strong>Thông tin y tế trôi nổi:</strong> Dễ tiếp cận các lời khuyên ăn uống hoặc dùng thuốc sai lệch gây tổn thương thận nặng hơn.</li>
+            <li><strong>Thiếu công cụ số hóa:</strong> Kết quả khám giấy dễ thất lạc, không theo dõi được biểu đồ biến động của chức năng thận.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="highlight-banner">
+        <p>💡 <strong>Nhu cầu bức thiết:</strong> Cần một nền tảng AI thông minh giúp <em>phát hiện sớm nguy cơ bệnh thận</em>, <em>giải thích chỉ số dễ hiểu</em> và <em>đồng hành chăm sóc cá nhân hóa</em> mỗi ngày.</p>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: Mục tiêu & Giải pháp -->
+    <section class="slide" data-slide="4">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 04</span>
+          <h2 class="slide-title">Mục Tiêu & Giải Pháp Toàn Diện</h2>
+        </div>
+        <span class="brand-tag">MỤC TIÊU & GIẢI PHÁP</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="feature-card">
+          <div class="card-icon-pill sky">🎯 Mục Tiêu Dự Án</div>
+          <h4>3 Trụ Cột Trọng Tâm</h4>
+          <ul>
+            <li><strong>Sàng lọc sớm:</strong> Ứng dụng Machine Learning phân tầng nguy cơ từ các chỉ số xét nghiệm thông thường.</li>
+            <li><strong>Tư vấn chuẩn y khoa:</strong> Chatbox AI giải đáp mọi thắc mắc dựa trên hướng dẫn y tế tin cậy.</li>
+            <li><strong>Quản lý toàn diện:</strong> Xây dựng hồ sơ bệnh án số và cổng quản trị điều hành cho bác sĩ/admin.</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill teal">💡 Giải Pháp RenalCareAI</div>
+          <h4>Hệ Sinh Thái Tích Hợp</h4>
+          <ul>
+            <li><strong>Cổng Người dùng:</strong> Hỏi đáp cùng Trợ lý RenalCareAI, tải và lưu trữ phiếu xét nghiệm, nhận gợi ý ăn uống/luyện tập.</li>
+            <li><strong>Mô hình AI Phân Loại:</strong> Tính điểm rủi ro (0–100) và xếp hạng giai đoạn bệnh thận (G1–G5).</li>
+            <li><strong>Cổng Admin Luxury Dark:</strong> Giám sát lưu lượng, theo dõi rủi ro bệnh nhân và xem toàn bộ nhật ký hội thoại.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="highlight-banner">
+        <p>⭐ <strong>Định vị:</strong> Trợ lý hỗ trợ y tế thông minh (AI Healthcare Assistant) — Giúp người dân hiểu đúng và hành động sớm.</p>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: Kiến trúc hệ thống -->
+    <section class="slide" data-slide="5">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 05</span>
+          <h2 class="slide-title">Kiến Trúc Tổng Thể Hệ Thống</h2>
+        </div>
+        <span class="brand-tag">SYSTEM ARCHITECTURE</span>
+      </div>
+
+      <div class="arch-img-frame">
+        <img src="assets/system_architecture.jpg" alt="Sơ đồ Kiến trúc Tổng thể Hệ thống RenalCareAI" />
+      </div>
+
+      <div class="grid-3" style="margin-top: 14px;">
+        <div class="feature-card" style="padding: 16px 18px;">
+          <h4 style="font-size: 16px; color: #38bdf8;">Độc lập & Linh hoạt</h4>
+          <p style="font-size: 14px;">Phân tách rõ ràng giữa Core Backend nghiệp vụ và AI Inference Engine.</p>
+        </div>
+        <div class="feature-card" style="padding: 16px 18px;">
+          <h4 style="font-size: 16px; color: #2dd4bf;">Hiệu năng Cao</h4>
+          <p style="font-size: 14px;">Spring Boot xử lý đa luồng kết hợp FastAPI bất đồng bộ tối ưu độ trễ.</p>
+        </div>
+        <div class="feature-card" style="padding: 16px 18px;">
+          <h4 style="font-size: 16px; color: #c084fc;">Mở rộng Dễ dàng</h4>
+          <p style="font-size: 14px;">Sẵn sàng đóng gói Docker và triển khai Microservices trên Cloud.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 06: KIẾN TRÚC TRIỂN KHAI CLOUD (VERCEL & RENDER) -->
+    <section class="slide" data-slide="6">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 06</span>
+          <h2 class="slide-title">Mô Hình Triển Khai & Vận Hành Đám Mây</h2>
+        </div>
+        <span class="brand-tag">CLOUD DEPLOYMENT & CI/CD</span>
+      </div>
+
+      <div class="arch-img-frame">
+        <img src="assets/cloud_deployment.jpg" alt="Mô hình Triển khai Vercel và Render" />
+      </div>
+
+      <div class="grid-3" style="margin-top: 14px;">
+        <div class="feature-card" style="padding: 16px 18px;">
+          <div class="card-icon-pill sky">▲ Vercel (Frontend)</div>
+          <h4 style="font-size: 16px; color: #38bdf8;">React + Vite SPA</h4>
+          <p style="font-size: 14px;">Tối ưu qua Global Edge CDN, HTTPS/SSL tự động, CI/CD trực tiếp từ GitHub.</p>
+        </div>
+        <div class="feature-card" style="padding: 16px 18px;">
+          <div class="card-icon-pill purple">⚡ Render (Backend & AI)</div>
+          <h4 style="font-size: 16px; color: #c084fc;">Spring Boot & FastAPI</h4>
+          <p style="font-size: 14px;">Web Services độc lập, quản lý biến môi trường bảo mật, tự động phục hồi.</p>
+        </div>
+        <div class="feature-card" style="padding: 16px 18px;">
+          <div class="card-icon-pill teal">🗄️ Render (MySQL Database)</div>
+          <h4 style="font-size: 16px; color: #2dd4bf;">Managed Database</h4>
+          <p style="font-size: 14px;">Chạy trong Private Network nội bộ, độ trễ truy vấn cực thấp (&lt; 2ms), sao lưu định kỳ.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: Machine Learning Model -->
+    <section class="slide" data-slide="7">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 07</span>
+          <h2 class="slide-title">Mô Hình AI/ML Dự Đoán Bệnh Thận</h2>
+        </div>
+        <span class="brand-tag">MACHINE LEARNING ENGINE</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="feature-card">
+          <div class="card-icon-pill sky">🧪 Dữ Liệu & Chỉ Số Sinh Hóa</div>
+          <h4>Các Thuộc Tính Đầu Vào</h4>
+          <ul>
+            <li><strong>Chức năng lọc thận:</strong> Serum Creatinine ($mg/dL$), eGFR ($mL/min/1.73m^2$), Blood Urea ($mg/dL$).</li>
+            <li><strong>Nước tiểu & Huyết học:</strong> Albumin niệu, Tỷ trọng nước tiểu (SG), Hồng cầu (RBC), Bạch cầu (WBC), Hemoglobin.</li>
+            <li><strong>Bệnh lý nền:</strong> Tăng huyết áp (BP), Đái tháo đường, Phù chi, Chế độ ăn uống.</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill teal">📈 Thuật Toán & Phân Tầng</div>
+          <h4>Đánh Giá Nguy Cơ Lâm Sàng</h4>
+          <ul>
+            <li>Mô hình phân loại <strong>Random Forest / Logistic Regression</strong> tối ưu độ nhạy (*Sensitivity & ROC-AUC*).</li>
+            <li><strong>🟢 Nguy cơ Thấp (0-30 điểm):</strong> Chức năng thận bình thường (Giai đoạn 1/2).</li>
+            <li><strong>🟡 Nguy cơ Vừa (31-65 điểm):</strong> Suy giảm chức năng thận trung bình (Giai đoạn 3), cần can thiệp dinh dưỡng.</li>
+            <li><strong>🔴 Nguy cơ Cao (66-100 điểm):</strong> Suy thận tiến triển (Giai đoạn 4/5), cảnh báo khẩn cấp cần khám chuyên khoa.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="highlight-banner">
+        <p>🎯 <strong>Đặc điểm nổi bật:</strong> Kết hợp giữa <em>mô hình ML dữ liệu lớn</em> và <em>công thức eGFR chuẩn y tế</em> để đưa ra kết luận toàn diện.</p>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: Trợ lý RenalCareAI -->
+    <section class="slide" data-slide="8">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 08</span>
+          <h2 class="slide-title">Trợ Lý AI RenalCareAI & Cơ Sở Tri Thức</h2>
+        </div>
+        <span class="brand-tag">RAG ARCHITECTURE</span>
+      </div>
+
+      <div class="grid-3">
+        <div class="feature-card">
+          <div class="card-icon-pill purple">1. Tri Thức Y Khoa</div>
+          <h4>Y Văn Chuẩn Mực</h4>
+          <p>Nạp toàn bộ tài liệu và hướng dẫn phác đồ điều trị bệnh thận quốc tế uy tín làm kho tri thức nền tảng.</p>
+        </div>
+        <div class="feature-card">
+          <div class="card-icon-pill sky">2. Vector Search</div>
+          <h4>Embedding & Chunking</h4>
+          <p>Phân tách văn bản, nhúng vector embeddings và truy xuất đoạn ngữ cảnh tương đồng cao nhất theo câu hỏi.</p>
+        </div>
+        <div class="feature-card">
+          <div class="card-icon-pill teal">3. Trích Dẫn Minh Bạch</div>
+          <h4>Không Ảo Giác</h4>
+          <p>AI trả lời kèm tên tài liệu và liên kết nguồn tham chiếu y khoa, giúp người bệnh và bác sĩ an tâm đối chiếu.</p>
+        </div>
+      </div>
+
+      <div class="diagram-box">
+[Câu hỏi Người dùng] ➡️ [Semantic Vector Search] ➡️ [Top-K Đoạn Y Văn Tham Chiếu] ➡️ [LLM Prompt Synthesis] ➡️ [Câu trả lời + Nguồn trích dẫn]
+      </div>
+    </section>
+
+    <!-- SLIDE 9: OCR & Phân tích hồ sơ -->
+    <section class="slide" data-slide="9">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 09</span>
+          <h2 class="slide-title">OCR & Số Hóa Hồ Sơ Khám Y Tế</h2>
+        </div>
+        <span class="brand-tag">DOCUMENT INTELLIGENCE</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="feature-card">
+          <div class="card-icon-pill amber">📷 Pipeline Bóc Tách OCR</div>
+          <h4>Xử Lý Đa Định Dạng</h4>
+          <ul>
+            <li>Hỗ trợ tải lên <strong>file PDF, ảnh chụp phiếu khám (.png, .jpg, .webp)</strong>.</li>
+            <li>Trích xuất bảng chỉ số sinh hóa tự động bằng Vision AI & biểu thức chính quy (Regex).</li>
+            <li>Tự động nhận diện và chuẩn hóa đơn vị đo lường (ví dụ: $µmol/L \rightarrow mg/dL$).</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill teal">📋 Khuyến Nghị Cá Nhân Hóa</div>
+          <h4>Báo Cáo Tự Động</h4>
+          <ul>
+            <li><strong>Nhận định bất thường:</strong> Phát hiện các chỉ số thận vượt ngưỡng an toàn.</li>
+            <li><strong>Chế độ Dinh dưỡng:</strong> Gợi ý lượng muối, đạm, kali, photpho phù hợp theo từng giai đoạn.</li>
+            <li><strong>Lịch trình Theo dõi:</strong> Nhắc nhở thời gian tái khám và xét nghiệm định kỳ.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="highlight-banner">
+        <p>🔒 <strong>Chính sách Bảo mật:</strong> Bắt buộc người dùng <em>đăng nhập tài khoản</em> trước khi tải hồ sơ y tế, đảm bảo quyền riêng tư tuyệt đối.</p>
+      </div>
+    </section>
+
+    <!-- SLIDE 10: Admin Portal -->
+    <section class="slide" data-slide="10">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 10</span>
+          <h2 class="slide-title">Cổng Quản Trị Admin Portal Luxury Dark</h2>
+        </div>
+        <span class="brand-tag">ADMIN CONTROL CENTER</span>
+      </div>
+
+      <div class="grid-3">
+        <div class="feature-card">
+          <div class="card-icon-pill sky">📊 1. Dashboard KPI</div>
+          <h4>Số Liệu Thời Gian Thực</h4>
+          <ul>
+            <li>Đo lường <strong>Unique Visitors</strong> và <strong>Lượt truy cập</strong> chính xác.</li>
+            <li>Đếm số lượng <strong>Hồ sơ nạp</strong> và <strong>Lượt hỏi đáp AI</strong>.</li>
+            <li>Biểu đồ phân bổ mức độ rủi ro bệnh nhân (Cao / Vừa / Thấp).</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill teal">👥 2. Quản Lý Người Dùng</div>
+          <h4>User Dossier Chi Tiết</h4>
+          <ul>
+            <li>Vòng đo điểm nguy cơ rủi ro tổng hợp.</li>
+            <li>Bảng thông số sinh hóa lâm sàng gần nhất.</li>
+            <li>Quản lý trạng thái tài khoản (*Active / Locked*).</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill purple">💬 3. Lịch Sử Chatbox</div>
+          <h4>Kiểm Tra Hội Thoại</h4>
+          <ul>
+            <li>Lưu vết 100% câu hỏi và phản hồi của AI.</li>
+            <li>Tìm kiếm từ khóa, phân trang 10 dòng/trang.</li>
+            <li>Xem chi tiết phiên hỏi đáp của từng bệnh nhân.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 11: Bảo mật & Xác thực -->
+    <section class="slide" data-slide="11">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 11</span>
+          <h2 class="slide-title">Bảo Mật Dữ Liệu & Quy Trình Xác Thực</h2>
+        </div>
+        <span class="brand-tag">SECURITY & COMPLIANCE</span>
+      </div>
+
+      <div class="grid-4">
+        <div class="feature-card">
+          <div class="card-icon-pill teal">📧 OTP Email</div>
+          <h4>Xác Thực 2 Bước</h4>
+          <p>Mã OTP gửi trực tiếp vào email khi đăng ký tài khoản, chống spam và tài khoản ảo.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill sky">🔐 BCrypt Hash</div>
+          <h4>Mã Hóa Mật Khẩu</h4>
+          <p>Băm mật khẩu 1 chiều bằng thuật toán BCrypt tiêu chuẩn công nghiệp an toàn tuyệt đối.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill purple">🛡️ Phân Quyền RBAC</div>
+          <h4>Kiểm Soát Quyền</h4>
+          <p>Tách biệt vai trò CUSTOMER và ADMIN, ngăn chặn truy cập trái phép vào dữ liệu hệ thống.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill rose">📋 Audit Log</div>
+          <h4>Lưu Vết Hoạt Động</h4>
+          <p>Ghi nhận nhật ký đăng ký, tải hồ sơ và tương tác chat phục vụ kiểm định chất lượng y tế.</p>
+        </div>
+      </div>
+
+      <div class="highlight-banner">
+        <p>✅ <strong>Đảm bảo:</strong> Dữ liệu sức khỏe của người dùng được lưu trữ độc lập và chỉ được truy xuất khi có sự cho phép hợp lệ.</p>
+      </div>
+    </section>
+
+    <!-- SLIDE 12: Kết quả & Lời kết -->
+    <section class="slide" data-slide="12">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <span class="slide-number-badge">SLIDE 12</span>
+          <h2 class="slide-title">Kết Quả Đạt Được & Hướng Phát Triển</h2>
+        </div>
+        <span class="brand-tag">KẾT LUẬN & ĐỊNH HƯỚNG</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="feature-card">
+          <div class="card-icon-pill teal">✅ Thành Tựu Dự Án</div>
+          <h4>Kết Quả Vận Hành</h4>
+          <ul>
+            <li>Hệ thống vận hành mượt mà, đồng bộ hoàn hảo giữa <strong>Frontend, Backend và AI RAG</strong>.</li>
+            <li>Backend kiểm thử <strong>100% BUILD SUCCESS</strong>; Frontend <strong>0 lỗi lint/build</strong>.</li>
+            <li>Đã tích hợp thành công mô hình ML dự đoán rủi ro bệnh thận và Trợ lý AI RenalCareAI.</li>
+            <li>Giao diện thân thiện cho người bệnh và chuyên nghiệp cho quản trị viên.</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon-pill sky">🚀 Hướng Mở Rộng</div>
+          <h4>Kế Hoạch Tương Lai</h4>
+          <ul>
+            <li>Kết nối với <strong>thiết bị đo huyết áp / đường huyết IoT</strong> để theo dõi tự động hàng ngày.</li>
+            <li>Mở rộng API tích hợp hệ thống <strong>Bệnh án điện tử bệnh viện (HIS / EMR)</strong>.</li>
+            <li>Phát triển ứng dụng di động đa nền tảng (<strong>Mobile App iOS & Android</strong>).</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="highlight-banner" style="text-align: center; justify-content: center;">
+        <h3 style="color: #38bdf8; font-size: 20px;">👏 XIN TRÂN TRỌNG CẢM ƠN QUÝ THẦY CÔ & HỘI ĐỒNG!</h3>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation Toolbar -->
+  <footer class="nav-toolbar">
+    <div class="nav-left">
+      <button class="nav-btn" id="prevBtn" onclick="prevSlide()">
+        <span>◀ Trước</span>
+      </button>
+      <button class="nav-btn primary" id="nextBtn" onclick="nextSlide()">
+        <span>Sau ▶</span>
+      </button>
+      <div class="slide-counter">
+        Trang <strong id="currentSlideNum">1</strong> / <span id="totalSlidesNum">12</span>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <button class="nav-btn" onclick="toggleFullscreen()">
+        <span>⛶ Toàn màn hình</span>
+      </button>
+      <button class="nav-btn" onclick="window.print()">
+        <span>🖨️ In / Xuất PDF</span>
+      </button>
+    </div>
+  </footer>
+
+  <script>
+    let currentSlide = 1;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    const progressBar = document.getElementById('progressBar');
+    const currentSlideNum = document.getElementById('currentSlideNum');
+    const totalSlidesNum = document.getElementById('totalSlidesNum');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    totalSlidesNum.textContent = totalSlides;
+
+    function showSlide(index) {
+      if (index < 1) index = 1;
+      if (index > totalSlides) index = totalSlides;
+
+      currentSlide = index;
+
+      slides.forEach((slide, idx) => {
+        if (idx + 1 === currentSlide) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+
+      // Update progress & controls
+      const progressPercent = (currentSlide / totalSlides) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+      currentSlideNum.textContent = currentSlide;
+
+      prevBtn.disabled = currentSlide === 1;
+      nextBtn.disabled = currentSlide === totalSlides;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        showSlide(currentSlide + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        showSlide(currentSlide - 1);
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    }
+
+    // Member Avatar Upload & Storage Handler
+    function uploadMemberAvatar(event, memberId) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        setMemberAvatar(memberId, dataUrl);
+        try {
+          localStorage.setItem('renal_member_avatar_' + memberId, dataUrl);
+        } catch (err) {
+          console.warn('Could not cache avatar to localStorage', err);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function setMemberAvatar(memberId, dataUrl) {
+      const img = document.getElementById('avatarImg' + memberId);
+      const placeholder = document.getElementById('placeholder' + memberId);
+      if (img && placeholder) {
+        img.src = dataUrl;
+        img.style.display = 'block';
+        placeholder.style.display = 'none';
+      }
+    }
+
+    // Load saved avatars on page load
+    function loadSavedAvatars() {
+      [1, 2, 3].forEach(id => {
+        try {
+          const saved = localStorage.getItem('renal_member_avatar_' + id);
+          if (saved) {
+            setMemberAvatar(id, saved);
+          }
+        } catch (err) {
+          // Ignore
+        }
+      });
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    });
+
+    // Initialize
+    loadSavedAvatars();
+    showSlide(1);
+  </script>
+</body>
+</html>
