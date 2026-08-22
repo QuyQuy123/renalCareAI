@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import traceback
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,14 +11,15 @@ from fastapi.responses import JSONResponse
 from starlette.requests import Request
 from pydantic import BaseModel, Field
 
+from app.ml_predictor import predict_ckd_risk
 from app.rag import answer_question
 from app.settings import get_settings
 
 settings = get_settings()
 logger = logging.getLogger("renalcareai.rag")
-RAG_VERSION = "rag-error-detail-v2"
+RAG_VERSION = "rag-ckd-ml-v1"
 
-app = FastAPI(title="RenalCareAI Chatbox RAG", version="0.1.0")
+app = FastAPI(title="RenalCareAI Chatbox RAG & CKD ML", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -36,6 +37,10 @@ class ChatHistoryItem(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=2, max_length=2000)
     history: list[ChatHistoryItem] = Field(default_factory=list)
+
+
+class PredictCkdRequest(BaseModel):
+    features: dict[str, Any] = Field(default_factory=dict)
 
 
 @app.exception_handler(Exception)
@@ -62,6 +67,16 @@ def health() -> dict[str, str]:
 def sources() -> list[dict[str, str]]:
     with settings.source_file.open("r", encoding="utf-8") as file:
         return json.load(file)
+
+
+@app.post("/api/predict-ckd")
+def predict_ckd(request: PredictCkdRequest) -> dict[str, Any]:
+    """Run direct inference using the UCI CKD Machine Learning model."""
+    try:
+        return predict_ckd_risk(request.features)
+    except Exception as error:
+        logger.exception("Prediction endpoint error")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {error}") from error
 
 
 @app.post("/api/chat")

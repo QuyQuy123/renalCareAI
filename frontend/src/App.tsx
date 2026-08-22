@@ -22,7 +22,6 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
-  Stethoscope,
   Timer,
   UploadCloud,
   X,
@@ -325,7 +324,7 @@ function App() {
       id: 'welcome',
       role: 'assistant',
       content:
-        'Xin chào, mình là trợ lý RenalCareAI. Bạn có thể hỏi về dấu hiệu bệnh thận, chỉ số xét nghiệm, ăn uống, luyện tập hoặc cách chuẩn bị khi đi khám.',
+        'Xin chào! Mình là Trợ lý Sức khỏe Thận RenalCareAI. Bạn có thể hỏi về các chỉ số xét nghiệm (eGFR, Creatinine...), chế độ ăn uống, tập luyện hoặc các dấu hiệu cần lưu ý về sức khỏe thận.',
     },
   ])
 
@@ -526,7 +525,7 @@ function App() {
       const messageText =
         error instanceof Error
           ? error.message
-          : 'Không thể kết nối trợ lý AI. Vui lòng kiểm tra RAG service.'
+          : 'Không thể kết nối trợ lý AI. Vui lòng thử lại sau.'
       setChatError(messageText)
     } finally {
       setIsChatLoading(false)
@@ -961,19 +960,10 @@ function App() {
               <BotMessageSquare size={18} />
               Trợ lý RenalCareAI
             </span>
-            <small>Hỏi đáp sức khỏe thận có nguồn tham khảo</small>
           </div>
           <button type="button" onClick={() => setIsChatOpen(false)} aria-label="Đóng chat">
             <X size={18} />
           </button>
-        </div>
-
-        <div className="chat-status-row">
-          <span>
-            <Stethoscope size={15} />
-            Tham khảo y khoa
-          </span>
-          <span>RAG + OpenAI</span>
         </div>
 
         <div className="chat-body">

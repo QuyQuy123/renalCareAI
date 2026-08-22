@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Data
+data/processed/
+data/external/
+*.parquet
+
+# Models
+models/*.joblib
+models/*.pkl
+models/*.onnx
+
+# Reports
+reports/figures/*
+
+# Env
+.venv/
+venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store

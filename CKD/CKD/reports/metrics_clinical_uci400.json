@@ -1,0 +1,136 @@
+{
+  "dataset": "UCI Apollo Hospitals CKD (400 rows)",
+  "target": "is_ckd",
+  "best_model": "logistic_regression",
+  "cv_summary": {
+    "logistic_regression": {
+      "cv_accuracy_mean": 0.99375,
+      "cv_accuracy_std": 0.0125,
+      "cv_roc_auc_mean": 1.0,
+      "cv_f1_mean": 0.9948717948717949
+    },
+    "random_forest": {
+      "cv_accuracy_mean": 0.99375,
+      "cv_accuracy_std": 0.007654655446197431,
+      "cv_roc_auc_mean": 1.0,
+      "cv_f1_mean": 0.9950617283950617
+    },
+    "gradient_boosting": {
+      "cv_accuracy_mean": 0.971875,
+      "cv_accuracy_std": 0.011692679333668566,
+      "cv_roc_auc_mean": 0.999375,
+      "cv_f1_mean": 0.9776512526728643
+    }
+  },
+  "test_metrics": {
+    "test_rows": 80,
+    "accuracy": 1.0,
+    "balanced_accuracy": 1.0,
+    "precision_ckd": 1.0,
+    "recall_sensitivity_ckd": 1.0,
+    "f1_ckd": 1.0,
+    "roc_auc": 1.0,
+    "confusion_matrix": [
+      [
+        30,
+        0
+      ],
+      [
+        0,
+        50
+      ]
+    ],
+    "classification_report": {
+      "No CKD": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 30.0
+      },
+      "CKD": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 50.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 80.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 80.0
+      }
+    }
+  },
+  "top_features": [
+    {
+      "feature": "sg",
+      "importance": 2.060517400910784
+    },
+    {
+      "feature": "hemo",
+      "importance": 1.6006631627986125
+    },
+    {
+      "feature": "al",
+      "importance": 1.293656942326399
+    },
+    {
+      "feature": "pcv",
+      "importance": 1.0414391301632924
+    },
+    {
+      "feature": "rbcc",
+      "importance": 0.8539838139472752
+    },
+    {
+      "feature": "htn_no",
+      "importance": 0.8131985278982818
+    },
+    {
+      "feature": "htn_yes",
+      "importance": 0.8104250054389152
+    },
+    {
+      "feature": "dm_no",
+      "importance": 0.7316560668579696
+    },
+    {
+      "feature": "dm_yes",
+      "importance": 0.7288825443986039
+    },
+    {
+      "feature": "appet_good",
+      "importance": 0.7131446377590451
+    },
+    {
+      "feature": "appet_poor",
+      "importance": 0.7103711152996794
+    },
+    {
+      "feature": "su",
+      "importance": 0.6749680607965206
+    },
+    {
+      "feature": "sc",
+      "importance": 0.6363204478831347
+    },
+    {
+      "feature": "bgr",
+      "importance": 0.6337026647172084
+    },
+    {
+      "feature": "sod",
+      "importance": 0.5086922173720748
+    }
+  ],
+  "artifacts": {
+    "model_path": "D:\\renalCareAI\\CKD\\CKD\\models\\ckd_clinical_pipeline.joblib"
+  }
+}
