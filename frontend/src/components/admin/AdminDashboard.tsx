@@ -25,9 +25,10 @@ import type { AdminDashboardStats } from '../../types/admin'
 
 type AdminDashboardProps = {
   apiBaseUrl: string
+  onNavigateToChat?: () => void
 }
 
-export function AdminDashboard({ apiBaseUrl }: AdminDashboardProps) {
+export function AdminDashboard({ apiBaseUrl, onNavigateToChat }: AdminDashboardProps) {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -227,14 +228,20 @@ export function AdminDashboard({ apiBaseUrl }: AdminDashboardProps) {
         </div>
 
         {/* KPI 3: AI Chat Responses */}
-        <div className="admin-kpi-card chat-kpi">
+        <div
+          className="admin-kpi-card chat-kpi clickable-kpi"
+          onClick={onNavigateToChat}
+          title="Nhấn để xem chi tiết toàn bộ các phiên hỏi đáp của Chatbox AI"
+          role="button"
+          tabIndex={0}
+        >
           <div className="kpi-top-row">
             <div className="kpi-icon-wrap chat-icon">
               <MessageSquare size={22} />
             </div>
             <div className="kpi-trend-badge ai">
               <Sparkles size={12} />
-              <span>RAG + ML</span>
+              <span>Xem hội thoại</span>
             </div>
           </div>
           <div className="kpi-content">
@@ -243,7 +250,7 @@ export function AdminDashboard({ apiBaseUrl }: AdminDashboardProps) {
               {isLoading ? <div className="skeleton-num" /> : (stats?.totalChatResponses ?? 0).toLocaleString()}
             </h3>
             <div className="kpi-footer-meta">
-              <span className="kpi-subtext">Câu hỏi & dự đoán sức khỏe thận AI</span>
+              <span className="kpi-subtext">Nhấn để xem câu hỏi & trả lời AI →</span>
             </div>
           </div>
           <div className="kpi-card-glow chat" />

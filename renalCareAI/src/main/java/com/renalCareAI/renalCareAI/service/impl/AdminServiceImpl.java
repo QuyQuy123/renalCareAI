@@ -43,22 +43,20 @@ public class AdminServiceImpl implements AdminService {
     private final ChatMessageLogRepository chatMessageLogRepository;
     private final AnalyticsTrackerService analyticsTrackerService;
     private final KidneyRiskScoringService kidneyRiskScoringService;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AdminServiceImpl(
             UserRepository userRepository,
             MedicalRecordRepository medicalRecordRepository,
             ChatMessageLogRepository chatMessageLogRepository,
             AnalyticsTrackerService analyticsTrackerService,
-            KidneyRiskScoringService kidneyRiskScoringService,
-            ObjectMapper objectMapper
+            KidneyRiskScoringService kidneyRiskScoringService
     ) {
         this.userRepository = userRepository;
         this.medicalRecordRepository = medicalRecordRepository;
         this.chatMessageLogRepository = chatMessageLogRepository;
         this.analyticsTrackerService = analyticsTrackerService;
         this.kidneyRiskScoringService = kidneyRiskScoringService;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)

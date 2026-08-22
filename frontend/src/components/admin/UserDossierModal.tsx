@@ -9,6 +9,7 @@ import {
   HeartPulse,
   Mail,
   MapPin,
+  MessageSquare,
   Phone,
   ShieldAlert,
   ShieldCheck,
@@ -59,7 +60,7 @@ export function UserDossierModal({ userId, apiBaseUrl, onClose }: UserDossierMod
     }
   }, [userId, apiBaseUrl])
 
-  function getRiskBadge(level?: string) {
+  function getRiskBadge(level?: string | null) {
     switch (level?.toUpperCase()) {
       case 'HIGH':
         return (
@@ -333,6 +334,40 @@ export function UserDossierModal({ userId, apiBaseUrl, onClose }: UserDossierMod
                           {rec.riskSummary && (
                             <p className="record-risk-note">{rec.riskSummary}</p>
                           )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* User AI Chatbox Questions & Answers History */}
+              <div className="admin-dossier-card user-chat-history-card">
+                <div className="dossier-card-title">
+                  <MessageSquare size={18} />
+                  <h5>Lịch sử Hỏi đáp cùng AI Chatbox ({detail.chatLogs?.length ?? 0})</h5>
+                </div>
+
+                {!detail.chatLogs || detail.chatLogs.length === 0 ? (
+                  <div className="no-records-box">
+                    <MessageSquare size={28} />
+                    <p>Người dùng này chưa có phiên hỏi đáp nào với Chatbox AI.</p>
+                  </div>
+                ) : (
+                  <div className="dossier-chat-logs-list">
+                    {detail.chatLogs.map((chat) => (
+                      <div className="dossier-chat-item" key={chat.id}>
+                        <div className="dossier-chat-header">
+                          <span className="chat-time-tag">
+                            <Calendar size={12} /> {formatDateTime(chat.createdAt)}
+                          </span>
+                          {getRiskBadge(chat.riskAssessment)}
+                        </div>
+                        <div className="dossier-chat-q">
+                          <strong>Câu hỏi:</strong> {chat.userMessage}
+                        </div>
+                        <div className="dossier-chat-a">
+                          <strong>AI Đáp:</strong> {chat.assistantAnswer}
                         </div>
                       </div>
                     ))}

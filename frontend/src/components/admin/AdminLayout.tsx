@@ -5,14 +5,16 @@ import {
   Globe,
   LayoutDashboard,
   LogOut,
+  MessageSquare,
   Radio,
   ShieldCheck,
   Users,
 } from 'lucide-react'
+import { AdminChatLogsView } from './AdminChatLogsView'
 import { AdminDashboard } from './AdminDashboard'
 import { AdminUserManagement } from './AdminUserManagement'
 
-type AdminTab = 'dashboard' | 'users'
+type AdminTab = 'dashboard' | 'chat' | 'users'
 
 type AdminLayoutProps = {
   apiBaseUrl: string
@@ -61,6 +63,18 @@ export function AdminLayout({ apiBaseUrl, adminUser, onExitAdmin, onLogout }: Ad
             </div>
             <span className="nav-item-title">Tổng quan Hệ thống</span>
             {currentTab === 'dashboard' && <span className="active-pill" />}
+          </button>
+
+          <button
+            type="button"
+            className={`admin-nav-item ${currentTab === 'chat' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('chat')}
+          >
+            <div className="nav-item-icon-box">
+              <MessageSquare size={18} />
+            </div>
+            <span className="nav-item-title">Lịch sử Chatbox AI</span>
+            {currentTab === 'chat' && <span className="active-pill" />}
           </button>
 
           <button
@@ -129,7 +143,9 @@ export function AdminLayout({ apiBaseUrl, adminUser, onExitAdmin, onLogout }: Ad
               <span className="breadcrumb-root">Portal Quản trị</span>
               <span className="breadcrumb-divider">/</span>
               <strong className="breadcrumb-current">
-                {currentTab === 'dashboard' ? 'Tổng quan & Thống kê' : 'Hồ sơ Người dùng & Dự đoán'}
+                {currentTab === 'dashboard' && 'Tổng quan & Thống kê'}
+                {currentTab === 'chat' && 'Lịch sử Hội thoại & Phản hồi Chatbox AI'}
+                {currentTab === 'users' && 'Hồ sơ Người dùng & Dự đoán Bệnh'}
               </strong>
             </div>
           </div>
@@ -147,7 +163,13 @@ export function AdminLayout({ apiBaseUrl, adminUser, onExitAdmin, onLogout }: Ad
         </header>
 
         <div className="admin-content-area">
-          {currentTab === 'dashboard' && <AdminDashboard apiBaseUrl={apiBaseUrl} />}
+          {currentTab === 'dashboard' && (
+            <AdminDashboard
+              apiBaseUrl={apiBaseUrl}
+              onNavigateToChat={() => setCurrentTab('chat')}
+            />
+          )}
+          {currentTab === 'chat' && <AdminChatLogsView apiBaseUrl={apiBaseUrl} />}
           {currentTab === 'users' && <AdminUserManagement apiBaseUrl={apiBaseUrl} />}
         </div>
       </main>

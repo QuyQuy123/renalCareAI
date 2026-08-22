@@ -24,18 +24,16 @@ public class AnalyticsTrackerServiceImpl implements AnalyticsTrackerService {
     private final SiteMetricRepository siteMetricRepository;
     private final VisitorLogRepository visitorLogRepository;
     private final ChatMessageLogRepository chatMessageLogRepository;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AnalyticsTrackerServiceImpl(
             SiteMetricRepository siteMetricRepository,
             VisitorLogRepository visitorLogRepository,
-            ChatMessageLogRepository chatMessageLogRepository,
-            ObjectMapper objectMapper
+            ChatMessageLogRepository chatMessageLogRepository
     ) {
         this.siteMetricRepository = siteMetricRepository;
         this.visitorLogRepository = visitorLogRepository;
         this.chatMessageLogRepository = chatMessageLogRepository;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional

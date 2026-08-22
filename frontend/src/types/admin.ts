@@ -54,6 +54,26 @@ export type AdminMedicalRecordItem = {
   uploadedAt: string
 }
 
+export type AdminChatLogItem = {
+  id: number
+  userId?: number | null
+  userEmail: string
+  userName: string
+  userMessage: string
+  assistantAnswer: string
+  sourcesJson?: string | null
+  riskAssessment?: string | null
+  createdAt: string
+}
+
+export type AdminChatLogPage = {
+  items: AdminChatLogItem[]
+  totalItems: number
+  totalPages: number
+  currentPage: number
+  pageSize: number
+}
+
 export type AdminUserDetail = {
   id: number
   fullName: string
@@ -74,4 +94,5 @@ export type AdminUserDetail = {
   clinicalFindings: string[]
   recommendations: string[]
   medicalRecords: AdminMedicalRecordItem[]
+  chatLogs?: AdminChatLogItem[]
 }

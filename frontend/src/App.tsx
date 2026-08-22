@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ChangeEvent, FormEvent, MouseEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent, MouseEvent } from 'react'
 import {
   Activity,
   Apple,
@@ -251,31 +251,6 @@ function parsePrediction(record: MedicalRecord) {
   }
 }
 
-function buildPredictionMessage(record: MedicalRecord) {
-  const prediction = parsePrediction(record)
-  if (!prediction) {
-    return `Mình đã lưu hồ sơ "${record.originalFileName}" vào mục Hồ sơ khám, nhưng chưa đọc được kết quả dự đoán từ file này.`
-  }
-
-  const indicators = Object.entries(prediction.indicators ?? {})
-    .map(([key, value]) => `- ${key}: ${value}`)
-    .join('\n')
-  const findings = prediction.findings?.slice(0, 4).map((item) => `- ${item}`).join('\n')
-  const recommendations = prediction.recommendations?.slice(0, 3).map((item) => `- ${item}`).join('\n')
-  const limitations = prediction.limitations?.slice(0, 2).map((item) => `- ${item}`).join('\n')
-
-  return [
-    `Mình đã đọc và lưu hồ sơ "${record.originalFileName}" vào mục Hồ sơ khám.`,
-    '',
-    `Kết quả sàng lọc: ${riskLabel(prediction.riskLevel)} (${prediction.riskScore}/100, độ tin cậy ${prediction.confidence}%).`,
-    prediction.summary,
-    indicators ? `\nChỉ số trích xuất:\n${indicators}` : '',
-    findings ? `\nNhận xét chính:\n${findings}` : '',
-    recommendations ? `\nGợi ý tiếp theo:\n${recommendations}` : '',
-    limitations ? `\nLưu ý:\n${limitations}` : '',
-    '\nThông tin này chỉ để tham khảo, không thay thế chẩn đoán hoặc chỉ định của bác sĩ.',
-  ].filter(Boolean).join('\n')
-}
 
 function App() {
   const [user, setUser] = useState<UserSession | null>(() => {
@@ -317,9 +292,7 @@ function App() {
   const [chatInput, setChatInput] = useState('')
   const [isChatLoading, setIsChatLoading] = useState(false)
   const [isChatStreaming, setIsChatStreaming] = useState(false)
-  const [isChatFileUploading, setIsChatFileUploading] = useState(false)
   const [chatError, setChatError] = useState('')
-  const chatFileInputRef = useRef<HTMLInputElement | null>(null)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -541,6 +514,9 @@ function App() {
         },
         body: JSON.stringify({
           message,
+          userId: user?.id,
+          userEmail: user?.email,
+          userName: user?.fullName,
           history: chatMessages
             .filter((item) => item.role === 'user' || item.role === 'assistant')
             .slice(-8)
@@ -566,55 +542,6 @@ function App() {
     }
   }
 
-  async function handleChatFileUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-    if (!user) {
-      setChatError('Bạn cần đăng nhập trước khi tải hồ sơ khám để dự đoán nguy cơ.')
-      openAuth('login')
-      return
-    }
-    if (isChatLoading || isChatStreaming || isChatFileUploading) {
-      return
-    }
-
-    const userMessage: ChatMessage = {
-      id: createChatId(),
-      role: 'user',
-      content: `Tải hồ sơ khám: ${file.name}`,
-    }
-    setChatMessages((current) => [...current, userMessage])
-    setChatError('')
-    setIsChatFileUploading(true)
-    setIsChatLoading(true)
-
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await fetch(`${API_BASE_URL}/api/users/${user.id}/medical-records/analyze`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const error = (await response.json().catch(() => ({}))) as ApiError
-        throw new Error(error.message ?? 'Không thể phân tích hồ sơ khám.')
-      }
-
-      const record = (await response.json()) as MedicalRecord
-      setMedicalRecords((current) => [record, ...current.filter((item) => item.id !== record.id)])
-      await revealAssistantAnswer(buildPredictionMessage(record))
-    } catch (error) {
-      setChatError(error instanceof Error ? error.message : 'Không thể phân tích hồ sơ khám.')
-    } finally {
-      setIsChatLoading(false)
-      setIsChatFileUploading(false)
-    }
-  }
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -847,7 +774,7 @@ function App() {
           </p>
 
           <div className="hero-actions">
-            <button className="primary-button" type="button" onClick={() => (user ? undefined : openAuth('login'))}>
+            <button className="primary-button" type="button" onClick={() => (user ? openRecords() : openAuth('login'))}>
               {user ? 'Tải hồ sơ khám' : 'Đăng nhập để tải hồ sơ'}
               <ChevronRight size={18} />
             </button>
@@ -1079,29 +1006,12 @@ function App() {
 
         <form className="chat-input" onSubmit={handleChatSubmit}>
           <input
-            ref={chatFileInputRef}
-            className="chat-file-input"
-            type="file"
-            accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.json,.md"
-            onChange={handleChatFileUpload}
-            aria-label="Tải hồ sơ khám để dự đoán nguy cơ bệnh thận"
-          />
-          <input
             aria-label="Nhập câu hỏi về sức khỏe thận"
             placeholder="Nhập câu hỏi về sức khỏe thận..."
             value={chatInput}
             onChange={(event) => setChatInput(event.target.value)}
           />
-          <button
-            className="chat-upload-button"
-            type="button"
-            disabled={isChatLoading || isChatStreaming || isChatFileUploading}
-            aria-label="Tải hồ sơ khám"
-            onClick={() => chatFileInputRef.current?.click()}
-          >
-            {isChatFileUploading ? <Loader2 size={18} className="spin" /> : <UploadCloud size={18} />}
-          </button>
-          <button type="submit" disabled={isChatLoading || isChatStreaming || isChatFileUploading || !chatInput.trim()} aria-label="Gửi câu hỏi">
+          <button type="submit" disabled={isChatLoading || isChatStreaming || !chatInput.trim()} aria-label="Gửi câu hỏi">
             {isChatLoading || isChatStreaming ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
           </button>
         </form>
@@ -1227,41 +1137,62 @@ function App() {
               </button>
             </div>
 
-            <form className="record-upload-form" onSubmit={handleRecordUpload}>
-              <label>
-                Tải hồ sơ khám
-                <input name="recordFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" />
-              </label>
-              <button className="auth-submit" type="submit" disabled={isRecordUploading}>
-                <UploadCloud size={18} />
-                {isRecordUploading ? 'Đang tải...' : 'Tải lên'}
-              </button>
-            </form>
+            {!user ? (
+              <div className="records-empty" style={{ padding: '32px 16px', textAlign: 'center' }}>
+                <p style={{ marginBottom: '16px', color: '#64748b' }}>
+                  Bạn cần đăng nhập tài khoản để tải lên và quản lý hồ sơ khám của mình.
+                </p>
+                <button
+                  type="button"
+                  className="auth-submit"
+                  onClick={() => {
+                    setIsRecordsOpen(false)
+                    openAuth('login')
+                  }}
+                >
+                  <LogIn size={18} />
+                  Đăng nhập ngay
+                </button>
+              </div>
+            ) : (
+              <>
+                <form className="record-upload-form" onSubmit={handleRecordUpload}>
+                  <label>
+                    Tải hồ sơ khám
+                    <input name="recordFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" />
+                  </label>
+                  <button className="auth-submit" type="submit" disabled={isRecordUploading}>
+                    <UploadCloud size={18} />
+                    {isRecordUploading ? 'Đang tải...' : 'Tải lên'}
+                  </button>
+                </form>
 
-            {recordsError && <p className="auth-message error">{recordsError}</p>}
-            {recordsMessage && <p className="auth-message success">{recordsMessage}</p>}
+                {recordsError && <p className="auth-message error">{recordsError}</p>}
+                {recordsMessage && <p className="auth-message success">{recordsMessage}</p>}
 
-            <div className="records-list">
-              {isRecordsLoading ? (
-                <div className="records-empty">
-                  <Loader2 size={20} className="spin" />
-                  Đang tải hồ sơ...
-                </div>
-              ) : medicalRecords.length === 0 ? (
-                <div className="records-empty">Bạn chưa tải hồ sơ khám nào.</div>
-              ) : (
-                medicalRecords.map((record) => (
-                  <article className="record-item" key={record.id}>
-                    <div>
-                      <strong>{record.originalFileName}</strong>
-                      <span>{formatDateTime(record.uploadedAt)} · {formatFileSize(record.fileSize)}</span>
-                      <p>{record.riskSummary ?? 'Đang chờ phân tích.'}</p>
+                <div className="records-list">
+                  {isRecordsLoading ? (
+                    <div className="records-empty">
+                      <Loader2 size={20} className="spin" />
+                      Đang tải hồ sơ...
                     </div>
-                    <small>{parsePrediction(record) ? riskLabel(parsePrediction(record)!.riskLevel) : riskLabel(record.status)}</small>
-                  </article>
-                ))
-              )}
-            </div>
+                  ) : medicalRecords.length === 0 ? (
+                    <div className="records-empty">Bạn chưa tải hồ sơ khám nào.</div>
+                  ) : (
+                    medicalRecords.map((record) => (
+                      <article className="record-item" key={record.id}>
+                        <div>
+                          <strong>{record.originalFileName}</strong>
+                          <span>{formatDateTime(record.uploadedAt)} · {formatFileSize(record.fileSize)}</span>
+                          <p>{record.riskSummary ?? 'Đang chờ phân tích.'}</p>
+                        </div>
+                        <small>{parsePrediction(record) ? riskLabel(parsePrediction(record)!.riskLevel) : riskLabel(record.status)}</small>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
           </section>
         </div>
       )}
